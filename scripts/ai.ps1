@@ -478,13 +478,21 @@ function Show-Status {
     $gpuInfo = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($gpuInfo) {
         $gpuName = $gpuInfo.Name
-        # Total VRAM — try DXGI via .NET (most reliable), fall back to WMI
-        $vramBytes = try {
-            Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop
-            $factory = [Windows.Graphics.Dxgi.DirectX]::CreateDXGIFactory1()
-            $adapter = $factory.EnumAdapters(0)
-            $adapter.Description.DedicatedVideoMemory
-        } catch { $null }
+        # Total VRAM — try registry (accurate on AMD), fall back to WMI
+        $vramBytes = $null
+        $regBase = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+        Get-ChildItem $regBase -ErrorAction SilentlyContinue | ForEach-Object {
+            $mem = (Get-ItemProperty $_.PSPath -Name "HardwareInformation.qwMemorySize" -ErrorAction SilentlyContinue).'HardwareInformation.qwMemorySize'
+            if ($mem -and $mem -gt $vramBytes) { $vramBytes = $mem }
+        }
+        if (-not $vramBytes) {
+            $vramBytes = try {
+                Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop
+                $factory = [Windows.Graphics.Dxgi.DirectX]::CreateDXGIFactory1()
+                $adapter = $factory.EnumAdapters(0)
+                $adapter.Description.DedicatedVideoMemory
+            } catch { $null }
+        }
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
