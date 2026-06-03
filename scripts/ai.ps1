@@ -76,13 +76,14 @@ function Show-Help {
 
 function Get-PortConfig {
     $portFile = "${Root}\AI_CONFIG\ports.json"
-    $defaults = @{ollama=11434; comfyui=8188; openwebui=8080}
+    $defaults = @{ollama=11434; comfyui=8188; openwebui=8080; listen="0.0.0.0"}
     if (Test-Path $portFile) {
         $saved = Get-Content $portFile -Raw | ConvertFrom-Json
-        $keys = @($defaults.Keys)  # snapshot to avoid modification-while-enumerating
+        $keys = @($defaults.Keys)
         foreach ($key in $keys) {
             $val = $saved.$key
-            if ($val -and $val -gt 0) { $defaults.$key = [int]$val }
+            if ($key -eq "listen" -and $val) { $defaults.$key = $val }
+            elseif ($val -and $val -gt 0) { $defaults.$key = [int]$val }
         }
     }
     return $defaults
@@ -93,13 +94,14 @@ function Manage-ComfyUI {
     $ports = Get-PortConfig
     $launcher = "${Root}\AI_TOOLS\launch_comfyui.ps1"
     $comfyPort = $ports.comfyui
+    $comfyHost = $ports.listen
     $comfyRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${comfyPort} "
 
     switch ($Action) {
         "start" {
             if ($comfyRunning) {
                 Write-Host "ComfyUI: Running on port $comfyPort"
-                Write-Host "URL: http://127.0.0.1:$comfyPort"
+                Write-Host "URL: http://$($comfyHost):$comfyPort"
                 return
             }
             if (!(Test-Path $launcher)) {
@@ -107,9 +109,18 @@ function Manage-ComfyUI {
                 exit 1
             }
             Write-Host "Starting ComfyUI..."
+            # Regenerate launcher with current listen address
+            $gpuFlag = if ((Get-GPUType) -eq "amd") { " --directml" } else { "" }
+            $comfyPath = "${Root}\AI_CORE\Apps\ComfyUI"
+            $launcherContent = @"
+Set-Location "$comfyPath"
+.\venv\Scripts\Activate.ps1
+python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+"@
+            $launcherContent | Out-File $launcher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             Start-Sleep -Seconds 3
-            Write-Host "ComfyUI started. URL: http://127.0.0.1:$comfyPort"
+            Write-Host "ComfyUI started. URL: http://$($comfyHost):$comfyPort"
         }
         "stop" {
             if (-not $comfyRunning) {
@@ -128,7 +139,7 @@ function Manage-ComfyUI {
         }
         "status" {
             if ($comfyRunning) {
-                Write-Host "ComfyUI: Running on port $comfyPort — http://127.0.0.1:$comfyPort"
+                Write-Host "ComfyUI: Running on port $comfyPort — http://$($comfyHost):$comfyPort"
             } else {
                 Write-Host "ComfyUI: not running"
             }
@@ -140,24 +151,27 @@ function Manage-Ollama {
     param([string]$Action)
     $ports = Get-PortConfig
     $ollamaPort = $ports.ollama
+    $ollamaHost = $ports.listen
     $ollamaRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} "
 
     switch ($Action) {
         "start" {
             if ($ollamaRunning) {
                 Write-Host "Ollama: Running on port $ollamaPort"
-                Write-Host "API: http://localhost:$ollamaPort"
+                Write-Host "API: http://$($ollamaHost):$ollamaPort"
                 return
             }
             Write-Host "Starting Ollama in background..."
-            # Generate launcher if missing
+            # Generate launcher with listen address
             $ollamaLauncher = "${Root}\AI_TOOLS\launch_ollama.ps1"
-            if (!(Test-Path $ollamaLauncher)) {
-                "ollama serve" | Out-File $ollamaLauncher -Encoding utf8
-            }
+            $launcher = @"
+`$env:OLLAMA_HOST = "${ollamaHost}:${ollamaPort}"
+ollama serve
+"@
+            $launcher | Out-File $ollamaLauncher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
             Start-Sleep -Seconds 2
-            Write-Host "Ollama started. API: http://localhost:$ollamaPort"
+            Write-Host "Ollama started. API: http://$($ollamaHost):$ollamaPort"
         }
         "stop" {
             if (-not $ollamaRunning) {
@@ -175,7 +189,7 @@ function Manage-Ollama {
         }
         "status" {
             if ($ollamaRunning) {
-                Write-Host "Ollama: Running on port $ollamaPort — http://localhost:$ollamaPort"
+                Write-Host "Ollama: Running on port $ollamaPort — http://$($ollamaHost):$ollamaPort"
             } else {
                 Write-Host "Ollama: not running"
             }
@@ -189,6 +203,7 @@ function Manage-WebUI {
     $webuiPath = "${Root}\AI_CORE\Apps\open-webui"
     $webuiLauncher = "${Root}\AI_TOOLS\launch_openwebui.ps1"
     $webuiPort = $ports.openwebui
+    $webuiHost = $ports.listen
     $webuiRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${webuiPort} "
 
     switch ($Action) {
@@ -202,9 +217,25 @@ function Manage-WebUI {
                 exit 1
             }
             Write-Host "Starting Open Web UI..."
+            # Regenerate launcher with current listen address
+            $launcher = @"
+`$webuiPath = "$webuiPath"
+`$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
+`$port = 8080
+`$hostAddr = "$webuiHost"
+if (Test-Path `$portFile) {
+    `$cfg = Get-Content `$portFile | ConvertFrom-Json
+    if (`$cfg.openwebui -and `$cfg.openwebui -gt 0) { `$port = `$cfg.openwebui }
+    if (`$cfg.listen) { `$hostAddr = `$cfg.listen }
+}
+Set-Location "`$webuiPath"
+.\venv\Scripts\Activate.ps1
+open-webui serve --host `$hostAddr --port `$port
+"@
+            $launcher | Out-File $webuiLauncher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
             Start-Sleep -Seconds 3
-            Write-Host "Open Web UI started. URL: http://127.0.0.1:$webuiPort"
+            Write-Host "Open Web UI started. URL: http://$($webuiHost):$webuiPort"
         }
         "stop" {
             if (-not $webuiRunning) {
@@ -222,7 +253,7 @@ function Manage-WebUI {
         }
         "status" {
             if ($webuiRunning) {
-                Write-Host "Open Web UI: Running on port $webuiPort — http://127.0.0.1:$webuiPort"
+                Write-Host "Open Web UI: Running on port $webuiPort — http://$($webuiHost):$webuiPort"
             } else {
                 Write-Host "Open Web UI: not running"
             }
@@ -340,12 +371,13 @@ vault_config:
         Write-Host "  Has indent check on line 2: $($yamlLines.Count -gt 1 -and $yamlLines[1] -match '^\s+[a-zA-Z_]+:')"
     }
 
-    # Launcher with GPU flag
+    # Launcher with GPU flag and listen address
     $gpuFlag = if ($gpu -eq "amd") { " --directml" } else { "" }
+    $listenAddr = "0.0.0.0"
     $launcher = @"
 Set-Location "$ComfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+python main.py --listen $listenAddr --port 8188 --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
 "@
     # Ensure target directory exists
     $toolsDir = "${Root}\AI_TOOLS"
@@ -401,18 +433,20 @@ function Install-OpenWebUI {
     pip install open-webui 2>&1 | Out-Null
     deactivate
 
-    # Launcher that reads port from config
+    # Launcher that reads port and listen address from config
     $launcher = @"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
 `$port = 8080
+`$hostAddr = "0.0.0.0"
 if (Test-Path `$portFile) {
     `$cfg = Get-Content `$portFile | ConvertFrom-Json
     if (`$cfg.openwebui -and `$cfg.openwebui -gt 0) { `$port = `$cfg.openwebui }
+    if (`$cfg.listen) { `$hostAddr = `$cfg.listen }
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --port `$port
+open-webui serve --host `$hostAddr --port `$port
 "@
 
     $toolsDir = "${Root}\AI_TOOLS"
@@ -796,12 +830,14 @@ function Setup-Ports {
     $portFile = "${Root}\AI_CONFIG\ports.json"
     $defaults = @{ollama=11434; comfyui=8188; openwebui=8080}
     $current = @{}
+    $currentListen = $null
     if (Test-Path $portFile) {
         $saved = Get-Content $portFile -Raw | ConvertFrom-Json
         foreach ($key in @($defaults.Keys)) { $current.$key = $saved.$key }
+        if ($saved.listen) { $currentListen = $saved.listen }
     }
 
-    Write-Host "Service Port Configuration"
+    Write-Host "Service Port & Address Configuration"
     Write-Host ""
 
     $changed = $false
@@ -816,9 +852,22 @@ function Setup-Ports {
         }
     }
 
+    # Listen address
+    $listenVal = if ($currentListen) { $currentListen } else { "0.0.0.0" }
+    $listenInput = Read-Host "Listen address (current: $listenVal, 0.0.0.0 for all, 127.0.0.1 for localhost)"
+    if ($listenInput -match '^[\d\.]+$') {
+        $currentListen = $listenInput
+        $changed = $true
+    } else {
+        $currentListen = $listenVal
+    }
+
     if ($changed) {
-        $current | ConvertTo-Json | Out-File $portFile -Encoding utf8
-        Write-Host "Ports saved to $portFile"
+        $portConfig = @{}
+        foreach ($key in $defaults.Keys) { $portConfig.$key = $current.$key }
+        $portConfig.listen = $currentListen
+        $portConfig | ConvertTo-Json | Out-File $portFile -Encoding utf8
+        Write-Host "Config saved to $portFile"
         Write-Host "Restart services for changes to take effect."
     } else {
         Write-Host "No changes."
