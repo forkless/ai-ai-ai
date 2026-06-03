@@ -496,12 +496,20 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # Probe utilization/VRAM via WDDM counters (fast, may be empty on some AMD)
+    # Probe utilization via WDDM counters (fast, may be empty on some AMD)
     $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
     if (-not $gpuUtil -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
     }
+
+    # VRAM used — try WDDM counter first, then WMI GPUAdapterMemory
     $gpuVramUsed = Get-Counter "\GPU Adapter Memory\Dedicated Usage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total" } | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum
+    if (-not $gpuVramUsed) {
+        $gpuMem = try { Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory -ErrorAction Stop | Select-Object -First 1 } catch { $null }
+        if ($gpuMem -and $gpuMem.DedicatedUsage) {
+            $gpuVramUsed = $gpuMem.DedicatedUsage * 1MB
+        }
+    }
 
     if ($gpuUtil) {
         Write-Host "GPU:  $([math]::Round([double]$gpuUtil))%  —  $gpuName"
