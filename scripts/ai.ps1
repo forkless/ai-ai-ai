@@ -469,7 +469,7 @@ function Show-Status {
     Write-Host "CPU:  $cpu%"
     Write-Host "RAM:  $ramUsed/$ramTotal GB ($ramPct%)"
 
-    # GPU — name + total VRAM from WMI (always fast, registry-backed)
+    # GPU — name from WMI, total VRAM from registry (more accurate on AMD)
     $gpuUtil = $null
     $gpuVramUsed = $null
     $gpuVramTotal = $null
@@ -478,12 +478,20 @@ function Show-Status {
     $gpuInfo = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($gpuInfo) {
         $gpuName = $gpuInfo.Name
-        if ($gpuInfo.AdapterRAM -and $gpuInfo.AdapterRAM -gt 0) {
-            $gpuVramTotal = [math]::Round($gpuInfo.AdapterRAM / 1GB, 1)
-        }
+        # Try registry for accurate VRAM (WMI AdapterRAM is often wrong on AMD)
+        $gpuPnpId = $gpuInfo.PNPDeviceID -replace '\\', '#'
+        $regPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\*"
+        $vramReg = Get-ChildItem $regPath -ErrorAction SilentlyContinue | ForEach-Object {
+            $id = (Get-ItemProperty $_.PSPath -Name "MatchingDeviceId" -ErrorAction SilentlyContinue).MatchingDeviceId
+            if ($id -and $gpuPnpId -like "*$id*") {
+                $mem = (Get-ItemProperty $_.PSPath -Name "HardwareInformation.qwMemorySize" -ErrorAction SilentlyContinue).'HardwareInformation.qwMemorySize'
+                if ($mem -and $mem -gt 0) { [math]::Round($mem / 1GB, 1) }
+            }
+        } | Select-Object -First 1
+        $gpuVramTotal = if ($vramReg) { $vramReg } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # Probe utilization/VRAM via WDDM counters (fast on most systems, empty on some AMD)
+    # Probe utilization/VRAM via WDDM counters (fast, may be empty on some AMD)
     $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
     if (-not $gpuUtil -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
@@ -501,8 +509,15 @@ function Show-Status {
         }
     } else {
         if ($gpuName) {
-            if ($gpuVramTotal) { Write-Host "GPU:  $gpuName  ($gpuVramTotal GB)" }
-            else { Write-Host "GPU:  $gpuName" }
+            $gpuLine = "GPU:  $gpuName"
+            if ($gpuVramUsed -and $gpuVramTotal) {
+                $gpuLine += "  | VRAM: $([math]::Round($gpuVramUsed / 1GB, 1))/$gpuVramTotal GB"
+            } elseif ($gpuVramTotal) {
+                $gpuLine += "  ($gpuVramTotal GB)"
+            } elseif ($gpuVramUsed) {
+                $gpuLine += "  | VRAM: $([math]::Round($gpuVramUsed / 1GB, 1)) GB used"
+            }
+            Write-Host $gpuLine
         } else { Write-Host "GPU:  not detected" }
     }
     Write-Host ""
