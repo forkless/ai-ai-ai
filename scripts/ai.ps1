@@ -496,12 +496,90 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # GPU utilization — fast inline probes (silent if counters don't exist)
+    # GPU utilization and VRAM used — try WDDM counters first, then DXGI via C# P/Invoke
     $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
     if ($gpuUtil -eq $null -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
     }
     $gpuVramUsed = Get-Counter "\GPU Adapter Memory\Dedicated Usage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total" } | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum
+    if ($gpuVramUsed -eq $null) {
+        try {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DXGI_QUERY_VIDEO_MEMORY_INFO {
+    public ulong Budget;
+    public ulong CurrentUsage;
+    public ulong AvailableForReservation;
+    public ulong CurrentReservation;
+}
+
+[Guid("645967A4-1392-4310-A798-8053CE5E93DA"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+[ComImport]
+interface IDXGIAdapter3 {
+    void QueryInterface();
+    void AddRef();
+    void Release();
+    void SetPrivateData();
+    void SetPrivateDataInterface();
+    void GetParent();
+    void EnumOutputs();
+    void GetDesc();
+    void GetDesc1();
+    void GetDesc2();
+    void RegisterHardwareContentProtectionTeardownStatusEvent();
+    void UnregisterHardwareContentProtectionTeardownStatus();
+    void QueryVideoMemoryInfo(uint NodeIndex, int MemorySegmentGroup, out DXGI_QUERY_VIDEO_MEMORY_INFO pVideoMemoryInfo);
+    void RegisterVideoMemoryBudgetChangeNotificationEvent();
+    void UnregisterVideoMemoryBudgetChangeNotification();
+}
+
+[Guid("7b7166ec-21c7-44ae-b21a-c9ae321ae369"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+[ComImport]
+interface IDXGIFactory1 {
+    void QueryInterface();
+    void AddRef();
+    void Release();
+    void SetPrivateData();
+    void SetPrivateDataInterface();
+    void GetParent();
+    void EnumAdapters();
+    void MakeWindowAssociation();
+    void GetWindowAssociation();
+    void CreateSwapChain();
+    void CreateSoftwareAdapter();
+    void EnumAdapters1(uint Adapter, [MarshalAs(UnmanagedType.IUnknown)] out object ppAdapter);
+}
+
+public class DxVram {
+    [DllImport("dxgi.dll", EntryPoint = "CreateDXGIFactory1")]
+    static extern int CreateDXGIFactory1Native([MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object ppFactory);
+
+    public static ulong GetVramUsage() {
+        object factoryObj = null;
+        try {
+            int hr = CreateDXGIFactory1Native(typeof(IDXGIFactory1).GUID, out factoryObj);
+            if (hr != 0) return 0;
+            IDXGIFactory1 factory = (IDXGIFactory1)factoryObj;
+            object adapterObj = null;
+            factory.EnumAdapters1(0, out adapterObj);
+            if (adapterObj == null) return 0;
+            IDXGIAdapter3 adapter3 = (IDXGIAdapter3)adapterObj;
+            DXGI_QUERY_VIDEO_MEMORY_INFO info;
+            adapter3.QueryVideoMemoryInfo(0, 0, out info);
+            return info.CurrentUsage;
+        } catch { return 0; } finally {
+            if (factoryObj != null) Marshal.ReleaseComObject(factoryObj);
+        }
+    }
+}
+'@ -ErrorAction Stop
+            $dxgiVram = [DxVram]::GetVramUsage()
+            if ($dxgiVram -gt 0) { $gpuVramUsed = $dxgiVram }
+        } catch { }
+    }
 
     if ($gpuUtil) {
         Write-Host "GPU:  $([math]::Round([double]$gpuUtil))%  —  $gpuName"
