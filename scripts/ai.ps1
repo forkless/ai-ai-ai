@@ -496,37 +496,12 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # GPU utilization and VRAM — discover via .NET + WMI (all built-in, no 3rd-party)
-    $gpuUtil = $null
-    $gpuVramUsed = $null
-
-    # Discover GPU counters by name (handles non-standard AMD category names)
-    $gpuCats = [System.Diagnostics.PerformanceCounterCategory]::GetCategories() | Where-Object { $_.CategoryName -match 'GPU|gpu|radeon|Radeon|AMD' }
-    $gpuCounters = @()
-    foreach ($cat in $gpuCats) { $gpuCounters += $cat.GetCounters() | ForEach-Object { "$($cat.CategoryName)\$($_.CounterName)" } }
-
-    if ($gpuUtil -eq $null -and $gpuCounters -match 'Utilization') {
-        $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
-    }
+    # GPU utilization — fast inline probes (silent if counters don't exist)
+    $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
     if ($gpuUtil -eq $null -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
     }
-
-    if ($gpuCounters -match 'Dedicated Usage') {
-        $gpuVramUsed = Get-Counter "\GPU Adapter Memory\Dedicated Usage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total" } | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum
-    }
-    if ($gpuVramUsed -eq $null) {
-        $gpuMem = try { Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory -ErrorAction Stop | Select-Object -First 1 } catch { $null }
-        if ($gpuMem -and $gpuMem.DedicatedUsage) {
-            $gpuVramUsed = $gpuMem.DedicatedUsage * 1MB
-        }
-    }
-
-    # Last resort: try root\wmi namespace for AMD-specific classes
-    if ($gpuVramUsed -eq $null -and $gpuName -match 'Radeon|AMD') {
-        $amdPerf = try { Get-CimInstance -Namespace root\wmi -ClassName "GPUPerformanceData" -ErrorAction Stop } catch { $null }
-        if ($amdPerf) { $gpuUtil = $amdPerf.GPUUtilization; $gpuVramUsed = $amdPerf.DedicatedMemoryUsed * 1MB }
-    }
+    $gpuVramUsed = Get-Counter "\GPU Adapter Memory\Dedicated Usage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total" } | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum
 
     if ($gpuUtil) {
         Write-Host "GPU:  $([math]::Round([double]$gpuUtil))%  —  $gpuName"
