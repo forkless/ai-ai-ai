@@ -498,3 +498,51 @@ Beyond manual promote, the architecture supports:
 - **`ai remove <model>`** — unregister + optionally delete from vault
 - **`ai list --cached`** — show models in cache that haven't been promoted yet
 - **`ai sync registry`** — scan vault for unregistered models, add them
+
+## Roadmap to 1.0
+
+### v0.x — PowerShell (current)
+
+Bootstrap scripts (`1-init.ps1`, `2-deps.ps1`, `3-comfyui.ps1`) handle provisioning.
+`ai.ps1` handles service management, diagnostics, and cache cleanup.
+All model operations are manual (download to cache, place in vault by hand).
+
+### v1.0 — Python backend + web dashboard
+
+**Bootstrap becomes minimal PowerShell:**
+```
+bootstrap.ps1
+  → install Python
+  → install Git
+  → clone/update repo
+  → run python main.py --setup
+```
+
+**Everything else moves to Python:**
+
+| Module | Replaces |
+|--------|----------|
+| `main.py` | `1-init.ps1` — folder creation, config |
+| `cli.py` | `ai.ps1` — service management, diagnostics |
+| `model.py` | Registry CRUD, pipeline orchestration |
+| `resolver.py` | Variant scoring, selection |
+| `web/` | Dashboard UI (Flask/FastAPI) |
+
+**Why Python:**
+
+- Data models over JSON file I/O — structured, typed, testable
+- REST API for web dashboard and runtime integration
+- Cross-platform — Linux headless runners supported
+- The design doc's pipeline (validate, resolve, score) is directly implementable
+- 1200+ lines of `ai.ps1` becomes ~400 lines of structured Python
+
+**What stays in PowerShell:**
+
+Nothing beyond the initial bootstrap. The bootstrap runs once to install Python and the toolchain. Everything after that — including service start/stop — is Python-managed.
+
+### Out of scope (v1.x)
+
+- Model format conversion (`.safetensors` ↔ GGUF)
+- Custom variant generation
+- Multi-user isolation
+- Docker container images
