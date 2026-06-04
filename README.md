@@ -64,7 +64,7 @@ Get-ChildItem *.ps1 | Unblock-File
 | `ai watch <service>` | Live-tail service logs (comfyui, ollama, openwebui) |
 | `ai setup ports` | Change service ports |
 | `ai setup env` | Check and fix environment variables |
-| `ai clean cache` | Free up temporary disk space (includes archived logs) |
+| `ai clean cache` | Free up temporary disk space (PyTorch hub, ComfyUI temp, archived logs) |
 
 ## Scripts
 
@@ -99,7 +99,7 @@ The scripts redirect download caches away from the vault:
 | Variable | Points To | Purpose |
 |----------|-----------|---------|
 | `OLLAMA_MODELS` | `AI_VAULT\models\llm` | Ollama model storage |
-| `HF_HOME` | `AI_CACHE\huggingface` | Hugging Face downloads |
+| `HF_HOME` | `AI_VAULT\.cache\huggingface` | Hugging Face downloads (persistent) |
 | `TORCH_HOME` | `AI_CACHE\torch` | PyTorch cache |
 
 Check and fix with `ai setup env`.

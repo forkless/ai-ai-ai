@@ -85,9 +85,9 @@ if ($detectedRoot) {
     [Environment]::SetEnvironmentVariable("OLLAMA_MODELS", "$detectedRoot\AI_VAULT\models\llm", "User")
     Write-Host "  OLLAMA_MODELS = $detectedRoot\AI_VAULT\models\llm"
 
-    # HF_HOME — keeps huggingface cache out of vault
-    [Environment]::SetEnvironmentVariable("HF_HOME", "$detectedRoot\AI_CACHE\huggingface", "User")
-    Write-Host "  HF_HOME       = $detectedRoot\AI_CACHE\huggingface"
+    # HF_HOME — cache under vault (persistent, not cleaned)
+    [Environment]::SetEnvironmentVariable("HF_HOME", "$detectedRoot\AI_VAULT\.cache\huggingface", "User")
+    Write-Host "  HF_HOME       = $detectedRoot\AI_VAULT\.cache\huggingface"
 
     # TORCH_HOME — keeps torch cache out of vault
     [Environment]::SetEnvironmentVariable("TORCH_HOME", "$detectedRoot\AI_CACHE\torch", "User")

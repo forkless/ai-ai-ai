@@ -72,7 +72,8 @@ $folders = @(
     "$BasePath\AI_TOOLS\utilities",
     "$BasePath\AI_TOOLS\converters",
     "$BasePath\AI_CACHE",
-    "$BasePath\AI_CACHE\huggingface",
+    "$BasePath\AI_VAULT\.cache",
+    "$BasePath\AI_VAULT\.cache\huggingface",
     "$BasePath\AI_CACHE\torch",
     "$BasePath\AI_CACHE\comfyui_temp"
 )

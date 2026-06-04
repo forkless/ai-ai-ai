@@ -30,7 +30,7 @@
 - **`ai watch`** — renamed from `ai tail`
 
 ### Cache policy
-- **HF_HOME no longer cleaned** — `ai clean cache` preserves Hugging Face cache; in-progress downloads would be corrupted otherwise. Removed `huggingface/` from `Clean-Cache` directory list and updated all help/description text.
+- **HF_HOME moved from AI_CACHE to AI_VAULT\.cache** — not volatile anymore. Updated `1-init.ps1`, `2-deps.ps1`, `Setup-Env`, `Doctor-Check`, and README.
 - **Removed dead `AI_CACHE\ollama` directory** — nothing writes there; Ollama models go to `AI_VAULT\models\llm` via `OLLAMA_MODELS`. Removed from `1-init.ps1` folder creation and `Clean-Cache`.
 
 ### Documentation
