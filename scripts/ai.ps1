@@ -59,7 +59,7 @@ function Show-Help {
     Write-Host "└$("─" * $inner)┘"
     Write-Host ""
     Write-Host "Usage: ai <command>"
-    Write-Host "Commands:"
+    Write-Host ""
     Write-Host ($cmd -f "install <service>",       "Install or update comfyui, comfyui-manager, ollama, openwebui or all")
     Write-Host ($cmd -f "start <service>",        "Start a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "stop <service>",         "Stop a service (all, ollama, comfyui, openwebui)")
