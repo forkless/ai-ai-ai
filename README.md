@@ -58,13 +58,13 @@ Get-ChildItem *.ps1 | Unblock-File
 | `ai restart all` | Restart all services |
 | `ai status` | Dashboard — running services, ports, model counts |
 | `ai doctor` | Full system diagnostics |
-| `ai models list` | List installed models by category |
-| `ai install comfyui` | Install or update ComfyUI |
-| `ai install openwebui` | Install Open Web UI |
-| `ai install comfyui-manager` | Add custom node browser to ComfyUI |
+| `ai list` | List installed models by category |
+| `ai install all` | Install or update everything |
+| `ai install <service>` | Install or update comfyui, comfyui-manager, ollama, openwebui |
+| `ai watch <service>` | Live-tail service logs (comfyui, ollama, openwebui) |
 | `ai setup ports` | Change service ports |
 | `ai setup env` | Check and fix environment variables |
-| `ai clean cache` | Free up temporary disk space |
+| `ai clean cache` | Free up temporary disk space (includes archived logs) |
 
 ## Scripts
 
@@ -112,10 +112,10 @@ tools, and caches into independent layers:
 ```
 AI_CONFIG\     — centralized configuration and model registry
 AI_CORE\       — AI runtimes and applications
-AI_VAULT\      — permanent models (LLMs, diffusion, embeddings)
+AI_VAULT\      — permanent models (LLMs, diffusion, embeddings, CLIP)
 AI_WORKSPACE\  — user files (input, output, workflows)
 AI_TOOLS\      — helper scripts and utilities
-AI_CACHE\      — temporary downloads and caches (safe to delete)
+AI_CACHE\      — temporary downloads, caches, and logs (safe to delete)
 ```
 
 A symlink binding layer at `AI_CORE\_bindings` routes model requests from
