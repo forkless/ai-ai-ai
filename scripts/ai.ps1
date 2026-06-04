@@ -60,7 +60,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "Usage: ai <command>"
     Write-Host "Commands:"
-    Write-Host ($cmd -f "install comfyui",        "Install or update ComfyUI")
+    Write-Host ($cmd -f "install <app>",           "Install or update comfyui, comfyui-manager, ollama, openwebui or all")
     Write-Host ($cmd -f "install comfyui-manager","Install ComfyUI-Manager custom nodes")
     Write-Host ($cmd -f "install ollama",         "Install Ollama via winget")
     Write-Host ($cmd -f "install openwebui",      "Install Open Web UI for Ollama")
@@ -1144,11 +1144,12 @@ function Doctor-Check {
 switch ($Command) {
     "install" {
         switch ($SubCommand) {
+            "all"             { Install-ComfyUI; Install-ComfyUI-Manager; Install-Ollama; Install-OpenWebUI }
             "comfyui"         { Install-ComfyUI }
             "comfyui-manager" { Install-ComfyUI-Manager }
             "ollama"          { Install-Ollama }
             "openwebui"       { Install-OpenWebUI }
-            default           { Write-Host "Usage: ai install <comfyui|comfyui-manager|ollama|openwebui>" }
+            default           { Write-Host "Usage: ai install <all|comfyui|comfyui-manager|ollama|openwebui>" }
         }
     }
     "start"      {
