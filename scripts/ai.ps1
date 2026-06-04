@@ -996,7 +996,7 @@ function Doctor-Check {
 
     # Git
     $g = git --version 2>$null
-    if ($g) { Write-Host ("│ {0,-20} │ {1,-28} │" -f "Git", ($g -replace '^git version ([\d.]+).*', '$1')) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "Git", "FAIL") }
+    if ($g) { Write-Host ("│ {0,-20} │ {1,-28} │" -f "Git", ($g -replace '^git version (\d+(?:\.\d+)*).*', '$1')) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "Git", "FAIL") }
 
     # Python
     $py10 = if (py -3.10 --version 2>$null) { (py -3.10 --version 2>$null) -replace '^Python (\S+).*', '$1' } else { "WARN" }
@@ -1021,7 +1021,7 @@ function Doctor-Check {
 
     # FFmpeg
     $ff = ffmpeg -version 2>$null
-    if ($ff) { $ff = ($ff -split "`n")[0] -replace '^ffmpeg version ([\d.]+).*', '$1'; Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", $ff) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", "not found") }
+    if ($ff) { $ff = ($ff -split "`n")[0] -replace '^ffmpeg version (\d+(?:\.\d+)*).*', '$1'; Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", $ff) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", "not found") }
     Write-Host "├──────────────────────┼──────────────────────────────┤"
 
     # Bindings
