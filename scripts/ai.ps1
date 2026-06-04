@@ -147,6 +147,11 @@ python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\A
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
             if ($procId) {
                 Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+                # Wait for process to exit and release file handles
+                $timeout = 10
+                while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
+                    Start-Sleep -Seconds 1; $timeout--
+                }
                 Write-Host "ComfyUI stopped."
             } else {
                 Write-Host "Could not find ComfyUI process."
@@ -197,6 +202,11 @@ ollama serve
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
             if ($procId) {
                 Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+                # Wait for process to exit and release file handles
+                $timeout = 10
+                while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
+                    Start-Sleep -Seconds 1; $timeout--
+                }
                 Write-Host "Ollama stopped."
             } else {
                 Write-Host "Could not find Ollama process."
@@ -261,6 +271,11 @@ open-webui serve --host `$hostAddr --port `$port
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
             if ($procId) {
                 Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+                # Wait for process to exit and release file handles
+                $timeout = 10
+                while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
+                    Start-Sleep -Seconds 1; $timeout--
+                }
                 Write-Host "Open Web UI stopped."
             } else {
                 Write-Host "Could not find process for Open Web UI."
