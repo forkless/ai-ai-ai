@@ -390,10 +390,31 @@ def _load_lib(*a): return False
         }
     }
 
+    # Ensure vault directories exist
+    $vaultDirs = @(
+        "$Root\AI_VAULT\models\diffusion\checkpoints",
+        "$Root\AI_VAULT\models\diffusion\diffusion_models",
+        "$Root\AI_VAULT\models\diffusion\loras",
+        "$Root\AI_VAULT\models\diffusion\vae",
+        "$Root\AI_VAULT\models\diffusion\controlnet",
+        "$Root\AI_VAULT\models\diffusion\unet",
+        "$Root\AI_VAULT\models\diffusion\text_encoders",
+        "$Root\AI_VAULT\models\diffusion\upscale_models",
+        "$Root\AI_VAULT\models\diffusion\ipadapter",
+        "$Root\AI_VAULT\models\diffusion\style_models",
+        "$Root\AI_VAULT\models\diffusion\clip_vision",
+        "$Root\AI_VAULT\models\diffusion\clip",
+        "$Root\AI_VAULT\models\embeddings"
+    )
+    foreach ($d in $vaultDirs) {
+        if (!(Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+    }
+
     # Extra model paths
     $yaml = @"
 vault_config:
     checkpoints: $Root\AI_VAULT\models\diffusion\checkpoints
+    diffusion_models: $Root\AI_VAULT\models\diffusion\diffusion_models
     loras: $Root\AI_VAULT\models\diffusion\loras
     vae: $Root\AI_VAULT\models\diffusion\vae
     controlnet: $Root\AI_VAULT\models\diffusion\controlnet
@@ -403,6 +424,7 @@ vault_config:
     ipadapter: $Root\AI_VAULT\models\diffusion\ipadapter
     style_models: $Root\AI_VAULT\models\diffusion\style_models
     clip_vision: $Root\AI_VAULT\models\diffusion\clip_vision
+    clip: $Root\AI_VAULT\models\diffusion\clip
     embeddings: $Root\AI_VAULT\models\embeddings
 "@
     $yaml | Out-File "$ComfyPath\extra_model_paths.yaml" -Encoding utf8

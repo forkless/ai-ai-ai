@@ -150,6 +150,27 @@ def _load_lib(*a): return False
 
 # Extra model paths
 Write-Host "Configuring model paths..."
+
+# Ensure vault directories exist
+$vaultDirs = @(
+    "${Root}\AI_VAULT\models\diffusion\checkpoints",
+    "${Root}\AI_VAULT\models\diffusion\diffusion_models",
+    "${Root}\AI_VAULT\models\diffusion\loras",
+    "${Root}\AI_VAULT\models\diffusion\vae",
+    "${Root}\AI_VAULT\models\diffusion\controlnet",
+    "${Root}\AI_VAULT\models\diffusion\unet",
+    "${Root}\AI_VAULT\models\diffusion\text_encoders",
+    "${Root}\AI_VAULT\models\diffusion\upscale_models",
+    "${Root}\AI_VAULT\models\diffusion\ipadapter",
+    "${Root}\AI_VAULT\models\diffusion\style_models",
+    "${Root}\AI_VAULT\models\diffusion\clip_vision",
+    "${Root}\AI_VAULT\models\diffusion\clip",
+    "${Root}\AI_VAULT\models\embeddings"
+)
+foreach ($d in $vaultDirs) {
+    if (!(Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+}
+
 $yaml = @"
 vault_config:
     checkpoints: ${Root}\AI_VAULT\models\diffusion\checkpoints
