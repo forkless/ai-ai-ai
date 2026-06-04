@@ -10,6 +10,7 @@ Commands:
   status [service]   System health or specific service status
   doctor             Full system diagnostics
   list models        List installed models
+  listclean          List model file paths (one per line, no formatting)
   clean cache        Clear temporary files
   setup env          Check and fix environment variables
   setup path         Add AI_TOOLS to PATH for 'ai' from anywhere
@@ -66,6 +67,7 @@ function Show-Help {
     Write-Host ($cmd -f "status [service]",       "System health or specific service status")
     Write-Host ($cmd -f "doctor",                 "Full system diagnostics (Git, Python, services, env)")
     Write-Host ($cmd -f "list models",            "List installed models (also: models list)")
+    Write-Host ($cmd -f "listclean",              "List model file paths (one per line, no formatting)")
     Write-Host ($cmd -f "clean cache",            "Delete all temporary files")
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
@@ -732,6 +734,32 @@ function Show-Models {
     }
 }
 
+function Show-ListClean {
+    $llmDir = "$Root\AI_VAULT\models\llm"
+    $diffDir = "$Root\AI_VAULT\models\diffusion"
+    $embedDir = "$Root\AI_VAULT\models\embeddings"
+
+    # Ollama models — output as model name (usable with ollama run/pull)
+    $raw = ollama list 2>$null | Select-Object -Skip 1
+    foreach ($line in $raw) {
+        $name = ($line -split '\s{2,}')[0] -replace ':latest',''
+        if ($name) { Write-Host "$llmDir\$name" }
+    }
+
+    # Diffusion files — full path
+    foreach ($sub in @("checkpoints","loras","vae","controlnet")) {
+        $d = "$diffDir\$sub"
+        if (Test-Path $d) {
+            Get-ChildItem "$d\*" -Include @("*.safetensors","*.ckpt") -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
+        }
+    }
+
+    # Embedding files — full path
+    if (Test-Path $embedDir) {
+        Get-ChildItem "$embedDir\*" -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
+    }
+}
+
 function Clean-Cache {
     $cacheDirs = @(
         "$Root\AI_CACHE\huggingface",
@@ -1003,6 +1031,7 @@ switch ($Command) {
         if ($SubCommand -eq "models") { Show-Models }
         else { Write-Host "Usage: ai list models" }
     }
+    "listclean"  { Show-ListClean }
     "models"     {
         if ($SubCommand -eq "list") { Show-Models }
         else { Write-Host "Usage: ai list models (also: ai models list)" }
