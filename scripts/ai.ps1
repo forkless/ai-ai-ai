@@ -682,21 +682,6 @@ function Show-Models {
         if ($bytes -ge 1KB) { return "$([math]::Round($bytes / 1KB)) KB" }
         return "$bytes B"
     }
-    function List-Files($dir, $header, $pattern) {
-        if (!(Test-Path $dir)) { return }
-        $items = Get-ChildItem "$dir\*" -Include $pattern -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }
-        if ($items.Count -eq 0) { return }
-        $namePad = [Math]::Max($header.Length, ($items | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
-        $sizePad = 7
-        Write-Host "┌─$("─" * $namePad)─┬─$("─" * $sizePad)─┐"
-        Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $header, "Size")
-        Write-Host "├─$("─" * $namePad)─┼─$("─" * $sizePad)─┤"
-        foreach ($item in $items) {
-            Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $item.BaseName, (Format-FileSize $item.Length))
-        }
-        Write-Host "└─$("─" * $namePad)─┴─$("─" * $sizePad)─┘"
-        Write-Host ""
-    }
 
     $rawModels = ollama list 2>$null | Select-Object -Skip 1
     $ollamaModels = @($rawModels | ForEach-Object {
@@ -721,13 +706,50 @@ function Show-Models {
         Write-Host $bot
         Write-Host ""
     }
-    List-Files "$diffDir\checkpoints" "Diffusion (checkpoints)" @("*.safetensors","*.ckpt")
-    List-Files "$diffDir\loras" "Diffusion (LoRAs)" @("*.safetensors")
-    List-Files "$diffDir\vae" "VAE" @("*.safetensors","*.ckpt")
-    List-Files "$diffDir\controlnet" "ControlNet" @("*.safetensors")
-    List-Files $embedDir "Embeddings" @("*")
+    # Scan all vault directories dynamically
+    $any = $false
+    $vaultDirs = @(
+        @{Path=$diffDir; Label="Diffusion"}
+        @{Path=$embedDir; Label="Embeddings"}
+    )
+    foreach ($vd in $vaultDirs) {
+        if (!(Test-Path $vd.Path)) { continue }
+        $subs = Get-ChildItem $vd.Path -Directory -ErrorAction SilentlyContinue
+        foreach ($sub in $subs) {
+            $files = Get-ChildItem $sub.FullName -File -ErrorAction SilentlyContinue
+            if ($files.Count -eq 0) { continue }
+            $any = $true
+            $label = "$($vd.Label) ($($sub.Name))"
+            $namePad = [Math]::Max($label.Length, ($files | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
+            $sizePad = 7
+            Write-Host "┌─$("─" * $namePad)─┬─$("─" * $sizePad)─┐"
+            Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $label, "Size")
+            Write-Host "├─$("─" * $namePad)─┼─$("─" * $sizePad)─┤"
+            foreach ($file in $files) {
+                Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $file.BaseName, (Format-FileSize $file.Length))
+            }
+            Write-Host "└─$("─" * $namePad)─┴─$("─" * $sizePad)─┘"
+            Write-Host ""
+        }
+        # Also list files directly in the parent (not in subfolders)
+        $rootFiles = Get-ChildItem $vd.Path -File -ErrorAction SilentlyContinue
+        if ($rootFiles.Count -gt 0) {
+            $any = $true
+            $label = $vd.Label
+            $namePad = [Math]::Max($label.Length, ($rootFiles | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
+            $sizePad = 7
+            Write-Host "┌─$("─" * $namePad)─┬─$("─" * $sizePad)─┐"
+            Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $label, "Size")
+            Write-Host "├─$("─" * $namePad)─┼─$("─" * $sizePad)─┤"
+            foreach ($file in $rootFiles) {
+                Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $file.BaseName, (Format-FileSize $file.Length))
+            }
+            Write-Host "└─$("─" * $namePad)─┴─$("─" * $sizePad)─┘"
+            Write-Host ""
+        }
+    }
 
-    if (!(Test-Path $llmDir) -and !(Test-Path $diffDir) -and !(Test-Path $embedDir)) {
+    if (-not $any) {
         Write-Host "No models found."
     }
 }
