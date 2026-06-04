@@ -64,7 +64,7 @@ function Show-Help {
     Write-Host ($cmd -f "start <service>",        "Start a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "stop <service>",         "Stop a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "restart <service>",       "Restart a service (all, ollama, comfyui, openwebui)")
-    Write-Host ($cmd -f "status [service]",       "System health or specific service status")
+    Write-Host ($cmd -f "status <service>",       "System health or specific service status")
     Write-Host ($cmd -f "doctor",                 "Full system diagnostics (Git, Python, services, env)")
     Write-Host ($cmd -f "list",                   "List installed models, checkpoints, embeddings")
     Write-Host ($cmd -f "clean cache",            "Delete all temporary files")
