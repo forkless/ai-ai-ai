@@ -58,46 +58,168 @@ AI_CORE/_bindings/
 
 Runtimes (ComfyUI, Ollama, Open Web UI) resolve models through `extra_model_paths.yaml` which points to `AI_VAULT/models/` via the bindings layer. They never reference the cache directly.
 
-## Promotion: Cache → Vault
+## The Model Compiler Pipeline
 
-Promotion materializes a clean copy of a model from cache into the vault.
-
-### What it does
-
-1. **Resolve snapshot** — pick `snapshots/<sha>/` from the HF cache entry
-2. **Resolve symlinks** — follow all symlinks to their blob targets, read the content
-3. **Normalize layout** — write a clean model directory under `AI_VAULT/models/<category>/<name>/`
-4. **Register** — add an entry to `AI_CONFIG/model_registry.json`
-
-### Input
+`AI_TOOLS` owns this pipeline. It takes raw model sources and produces clean, canonical artifacts in the vault.
 
 ```
-AI_CACHE/huggingface/hub/models--hf-internal-testing--tiny-random-bert/snapshots/f171d7ba.../
-    config.json          → symlink → ../../blobs/<hash>
-    model.safetensors    → symlink → ../../blobs/<hash>
-    tokenizer.json       → symlink → ../../blobs/<hash>
-    ...
+AI_CACHE (staging)
+    ↓
+VALIDATION
+    ↓
+NORMALIZATION / CONVERSION
+    ↓
+VARIANT GENERATION (optional)
+    ↓
+AI_VAULT (canonical)
+    ↓
+REGISTRATION (AI_CONFIG)
+    ↓
+AI_CORE (resolution + serving)
 ```
 
-### Output
+This is a **model build system** — analogous to a compiler toolchain.
+
+### Step 1: Download → AI_CACHE
+
+Sources:
+- Hugging Face Hub
+- Local file
+- URL
+- ComfyUI model repo
+
+Output lands in `AI_CACHE/huggingface/` in the framework's native format (blob/snapshot/refs). Nothing is trusted yet.
+
+### Step 2: Validation (critical gate)
+
+Before anything enters the vault:
+
+| Check | What it catches |
+|-------|----------------|
+| File integrity (SHA256) | Corrupted downloads |
+| Missing shards | Incomplete model repos |
+| Correct format | Prefer `safetensors` over `pytorch` |
+| Tokenizer present | Required for LLMs |
+| Config sanity | Valid `config.json`, `generation_config.json` |
+
+If validation fails → discard cache entry. If it passes → continue.
+
+### Step 3: Normalization / Conversion
+
+Convert the framework-native repo structure into the canonical vault format.
+
+**From HF cache:**
+```
+snapshots/<hash>/
+  model.safetensors
+  tokenizer.json
+  config.json
+```
+
+**To vault:**
+```
+AI_VAULT/models/llm/my-model/
+  model.safetensors
+  config.json
+  tokenizer.json
+  manifest.json
+```
+
+No blobs. No snapshots. No HF folder structure. Only clean, stable artifacts.
+
+### Step 4: Variant Generation (optional)
+
+From one source model, generate multiple deployment variants:
 
 ```
-AI_VAULT/models/llm/tiny-random-bert/
-    model.safetensors   (real file, resolved from blob)
-    config.json         (real file, resolved from blob)
-    tokenizer.json      (real file, resolved from blob)
-
-AI_CONFIG/model_registry.json  (updated)
+fp16/          (high precision, GPU)
+int8/          (balanced, GPU)
+gguf-q4/       (CPU / llama.cpp)
+gguf-q5/       (higher quality CPU)
 ```
 
-### Trade-offs
+Each variant targets a different runtime:
 
-| Pro | Con |
-|-----|-----|
-| Vault is framework-agnostic — works with any runtime | Duplicates disk usage (cache copy + vault copy) |
-| Cache can be wiped safely after promotion | Needs a materialization step (time + I/O) |
-| Vault format is stable and portable | Doesn't preserve HF snapshot history |
-| Clean bindings — ComfyUI/Ollama resolve directly | Manual trigger — not automatic |
+| Runtime | Format |
+|---------|--------|
+| Transformers | safetensors |
+| Ollama / llama.cpp | GGUF |
+| ComfyUI | diffusion-specific layout |
+
+Variants are stored under the model's vault directory.
+
+### Step 5: Promote → AI_VAULT
+
+The finalized model lands in its canonical location:
+
+```
+AI_VAULT/models/<category>/<name>/
+  model.safetensors
+  config.json
+  tokenizer.json
+  manifest.json
+  variants/
+    fp16/...
+    int8/...
+    gguf-q4/...
+```
+
+This is the **canonical artifact**. Cache can be wiped at any point after this.
+
+### Step 6: Register → AI_CONFIG
+
+A registry entry is written so AI_CORE can discover and resolve the model:
+
+```json
+{
+  "llm:my-model": {
+    "path": "AI_VAULT/models/llm/my-model",
+    "source": "huggingface/meta-llama/Llama-3-8B",
+    "formats": ["fp16", "int8"],
+    "runtime": ["transformers", "llama.cpp"],
+    "pinned": true,
+    "status": "active"
+  }
+}
+```
+
+### Step 7: Ready → AI_CORE
+
+The model is now discoverable by the resolver and available to all runtimes through `_bindings`.
+
+### Full Pipeline Summary
+
+| Step | Location | Action |
+|------|----------|--------|
+| 1. Download | AI_CACHE | Fetch from source |
+| 2. Validate | AI_CACHE | Integrity + format check |
+| 3. Convert | AI_CACHE → vault | Normalize structure |
+| 4. Build variants | AI_VAULT | Optional compilation |
+| 5. Promote | AI_VAULT | Canonical artifact |
+| 6. Register | AI_CONFIG | Write registry entry |
+| 7. Serve | AI_CORE | Runtime resolution |
+
+### Why This Works
+
+| Problem | How the pipeline fixes it |
+|---------|--------------------------|
+| HF is not canonical | Vault has a stable, normalized format |
+| Different runtimes need different layouts | Variant generation targets each runtime |
+| Models need lifecycle control | Registry tracks status, pinned state, versions |
+| Cache is not trustworthy storage | Validation gate + canonical vault artifact |
+
+### Architectural Analogy
+
+| Stage | Analogy |
+|-------|---------|
+| Download | Source fetch |
+| Validate | Lint / typecheck |
+| Convert | Compilation |
+| Variants | Build targets |
+| Vault | Artifact output |
+| Registry | Linker symbol table |
+
+AI_TOOLS is the compiler toolchain. AI_VAULT is the build output. AI_CONFIG is the symbol table. AI_CORE is the runtime linker.
 
 ## What Registration Is
 
