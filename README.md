@@ -64,7 +64,7 @@ Get-ChildItem *.ps1 | Unblock-File
 | `ai watch <service>` | Live-tail service logs (comfyui, ollama, openwebui) |
 | `ai setup ports` | Change service ports |
 | `ai setup env` | Check and fix environment variables |
-| `ai clean cache` | Free up temporary disk space (includes archived logs) |
+| `ai clean cache` | Free up disk space — pin models to AI_VAULT first (HF, PyTorch, ComfyUI temp, logs) |
 
 ## Scripts
 
