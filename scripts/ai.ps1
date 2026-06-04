@@ -293,6 +293,7 @@ function Get-GPUType {
 }
 
 function Install-ComfyUI {
+    Manage-ComfyUI "stop"
     Push-Location
     $ComfyPath = "$Root\AI_CORE\Apps\ComfyUI"
     $gpu = Get-GPUType
@@ -412,6 +413,7 @@ python main.py --listen $listenAddr --port 8188 --temp-directory "${Root}\AI_CAC
 }
 
 function Install-ComfyUI-Manager {
+    Manage-ComfyUI "stop"
     Push-Location
     $nodeDir = "${Root}\AI_CORE\Apps\ComfyUI\custom_nodes\ComfyUI-Manager"
     if (!(Test-Path $nodeDir)) {
@@ -434,12 +436,14 @@ Does NOT set OLLAMA_MODELS env var. Run 'ai setup env' after install.
 Idempotent: winget handles upgrades.
 #>
 function Install-Ollama {
+    Manage-Ollama "stop"
     Write-Host "Installing Ollama..."
     winget install Ollama.Ollama --accept-source-agreements
     Write-Host "Done. Restart PowerShell, then set: setx OLLAMA_MODELS `"$Root\AI_CORE\_bindings\llm`""
 }
 
 function Install-OpenWebUI {
+    Manage-WebUI "stop"
     Push-Location
     $webuiPath = "${Root}\AI_CORE\Apps\open-webui"
     $webuiVenv = "${webuiPath}\venv"
