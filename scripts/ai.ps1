@@ -910,15 +910,14 @@ function Show-Models {
 
 <#
 .SYNOPSIS Deletes all contents under AI_CACHE subdirectories.
-Side effects: removes torch/, comfyui_temp/, ollama/ contents.
+Side effects: removes torch/ and comfyui_temp/ contents.
 Hugging Face cache (HF_HOME) is preserved — in-flight downloads would break.
 Does NOT delete the directories themselves, only their contents.
 #>
 function Clean-Cache {
     $cacheDirs = @(
         "$Root\AI_CACHE\torch",
-        "$Root\AI_CACHE\comfyui_temp",
-        "$Root\AI_CACHE\ollama"
+        "$Root\AI_CACHE\comfyui_temp"
     )
 
     $total = 0

@@ -74,8 +74,7 @@ $folders = @(
     "$BasePath\AI_CACHE",
     "$BasePath\AI_CACHE\huggingface",
     "$BasePath\AI_CACHE\torch",
-    "$BasePath\AI_CACHE\comfyui_temp",
-    "$BasePath\AI_CACHE\ollama"
+    "$BasePath\AI_CACHE\comfyui_temp"
 )
 
 $created = 0
