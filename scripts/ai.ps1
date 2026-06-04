@@ -680,11 +680,14 @@ function Show-Models {
         if (!(Test-Path $dir)) { return }
         $items = Get-ChildItem "$dir\*" -Include $pattern -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }
         if ($items.Count -eq 0) { return }
-        Write-Host $header
-        Write-Host "────────────────────────────────"
+        $maxLen = [Math]::Max($header.Length, ($items | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
+        Write-Host "┌─$("─" * $maxLen)─┐"
+        Write-Host ("│ {0,-$maxLen} │" -f $header)
+        Write-Host "├─$("─" * $maxLen)─┤"
         foreach ($item in $items) {
-            Write-Host "  $($item.BaseName)"
+            Write-Host ("│ {0,-$maxLen} │" -f $item.BaseName)
         }
+        Write-Host "└─$("─" * $maxLen)─┘"
         Write-Host ""
     }
 
