@@ -155,13 +155,21 @@ if ($firstLine -match "^[a-zA-Z_]+:$" -and $yamlLines.Count -gt 1 -and $yamlLine
     Write-Host "  First line trimmed: '${firstLine}'"
 }
 
-# Launcher with GPU flag
+# Launcher with GPU flag and port config
 Write-Host "Creating launcher..."
 $gpuFlag = if ($gpuType -eq "amd") { " --directml" } else { "" }
+$portFile = "${Root}\AI_CONFIG\ports.json"
+$comfyPort = 8188
+$listenAddr = "0.0.0.0"
+if (Test-Path $portFile) {
+    $cfg = Get-Content $portFile -Raw | ConvertFrom-Json
+    if ($cfg.comfyui -and $cfg.comfyui -gt 0) { $comfyPort = [int]$cfg.comfyui }
+    if ($cfg.listen) { $listenAddr = $cfg.listen }
+}
 $launcher = @"
 Set-Location "$ComfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
 "@
 $toolsDir = "${Root}\AI_TOOLS"
 if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
