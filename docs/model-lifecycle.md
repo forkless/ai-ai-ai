@@ -99,11 +99,75 @@ AI_CONFIG/model_registry.json  (updated)
 | Vault format is stable and portable | Doesn't preserve HF snapshot history |
 | Clean bindings — ComfyUI/Ollama resolve directly | Manual trigger — not automatic |
 
+## What Registration Is
+
+Registration is not storage and not duplication.
+
+It is a **mapping layer**:
+
+| Maps | Example |
+|------|---------|
+| model name → physical location | `llm:my-fat-model` → `AI_VAULT/models/llm/my-fat-model` |
+| model type → runtime handler | `llm` → Ollama, `diffusion` → ComfyUI |
+| metadata → version, source, quantization | `"source": "huggingface/meta-llama/Llama-3-8B"` |
+
+Registering a model means writing its canonical identity into `AI_CONFIG/model_registry.json` so `AI_CORE` can resolve it to a path in `AI_VAULT`. The weights stay on disk — only the pointer and metadata are added.
+
+### Necessity
+
+Without a registry, every tool has its own source of truth:
+
+- ComfyUI scans folders blindly
+- Ollama maintains its own model list
+- LM Studio uses its own index
+
+Three conflicting sources of truth. With a registry, `AI_CONFIG/model_registry.json` becomes the single authoritative index.
+
+### Architectural Roles
+
+```
+AI_VAULT     → Storage         (files on disk)
+AI_CONFIG    → Identity/Truth  (model_registry.json)
+AI_CORE      → Runtime Resolver (bindings + routing)
+```
+
+Each layer has a single responsibility. The vault holds the bytes. Config declares existence. Core serves them.
+
+### The Full Promote Pipeline
+
+When you promote a model:
+
+1. **Materialize** — resolve the HF snapshot into a clean directory under `AI_VAULT/models/<category>/<name>/`
+2. **Register** — write an entry into `AI_CONFIG/model_registry.json` (name, path, source, format, revision, pinned)
+3. **Route** — `AI_CORE/_bindings` uses the registry to enumerate available models and expose them to runtimes
+
 ## Registry: `AI_CONFIG/model_registry.json`
 
 A local index of all known models. Created as an empty placeholder by `1-init.ps1`.
 
 ### Schema
+
+Key-based format (preferred — direct lookup by `type:name`):
+
+```json
+{
+  "version": 1,
+  "models": {
+    "llm:my-fat-model": {
+      "name": "my-fat-model",
+      "category": "llm",
+      "path": "AI_VAULT/models/llm/my-fat-model",
+      "type": "llm",
+      "format": "safetensors",
+      "source": "huggingface/meta-llama/Llama-3-8B",
+      "version": "3.1",
+      "pinned": true
+    }
+  }
+}
+```
+
+Or array-based format for sequential iteration:
 
 ```json
 {
