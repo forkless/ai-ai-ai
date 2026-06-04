@@ -27,3 +27,6 @@ Thumbs.db
 
 # Git
 *.orig
+
+# Test model cache
+tests/HF_HOME/
