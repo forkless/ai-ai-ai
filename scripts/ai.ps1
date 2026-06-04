@@ -67,7 +67,7 @@ function Show-Help {
     Write-Host ($cmd -f "status <service>",       "System health or specific service status")
     Write-Host ($cmd -f "doctor",                 "Full system diagnostics (Git, Python, services, env)")
     Write-Host ($cmd -f "list",                   "List installed models, checkpoints, embeddings")
-    Write-Host ($cmd -f "clean cache",            "Delete all temporary files")
+    Write-Host ($cmd -f "clean cache",            "Free up temporary disk space (preserves Hugging Face downloads)")
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
     Write-Host ($cmd -f "setup ports",            "Configure service ports")
@@ -910,13 +910,12 @@ function Show-Models {
 
 <#
 .SYNOPSIS Deletes all contents under AI_CACHE subdirectories.
-Side effects: removes huggingface/, torch/, comfyui_temp/, ollama/ contents.
+Side effects: removes torch/, comfyui_temp/, ollama/ contents.
+Hugging Face downloads (HF_HOME) are preserved — they are not scratch data.
 Does NOT delete the directories themselves, only their contents.
-Safe to run at any time — caches rebuild on next tool use.
 #>
 function Clean-Cache {
     $cacheDirs = @(
-        "$Root\AI_CACHE\huggingface",
         "$Root\AI_CACHE\torch",
         "$Root\AI_CACHE\comfyui_temp",
         "$Root\AI_CACHE\ollama"
@@ -949,7 +948,7 @@ function Setup-Env {
 
     $vars = @(
         @{Name="OLLAMA_MODELS"; Expected="${Root}\AI_VAULT\models\llm"; Scope="User"; Help="Controls where Ollama stores models. Set before pulling."},
-        @{Name="HF_HOME"; Expected="${Root}\AI_CACHE\huggingface"; Scope="User"; Help="Keeps Hugging Face downloads in AI_CACHE, not AI_VAULT."},
+        @{Name="HF_HOME"; Expected="${Root}\AI_CACHE\huggingface"; Scope="User"; Help="Hugging Face downloads in AI_CACHE (persistent — preserved by clean cache)."},
         @{Name="TORCH_HOME"; Expected="${Root}\AI_CACHE\torch"; Scope="User"; Help="Keeps PyTorch cache in AI_CACHE, not AI_VAULT."}
     )
 

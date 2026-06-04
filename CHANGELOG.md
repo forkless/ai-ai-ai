@@ -29,6 +29,9 @@
 - **Consistent help notation** — all commands use `<service>` parameter notation; removed redundant entries and `Commands:` label
 - **`ai watch`** — renamed from `ai tail`
 
+### Cache policy
+- **HF_HOME no longer cleaned** — `ai clean cache` preserves Hugging Face downloads; they are model data, not scratch cache. Removed `huggingface/` from `Clean-Cache` directory list and updated all help/description text.
+
 ### Documentation
 - Updated README daily-use table, vault layout description, cache folder description
 - Added inline function and section doc comments to all scripts (`32a68bf`)
