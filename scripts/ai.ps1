@@ -134,6 +134,7 @@ Set-Location "$comfyPath"
 python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
+            Rotate-LogFile "$logDir\comfyui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             Start-Sleep -Seconds 3
             Write-Host "ComfyUI started. URL: http://$($comfyHost):$comfyPort"
@@ -197,6 +198,7 @@ function Manage-Ollama {
 ollama serve *>> "`$logFile"
 "@
             $launcher | Out-File $ollamaLauncher -Encoding utf8
+            Rotate-LogFile "$logDir\ollama.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
             Start-Sleep -Seconds 2
             Write-Host "Ollama started. API: http://$($ollamaHost):$ollamaPort"
@@ -273,6 +275,7 @@ Set-Location "`$webuiPath"
 open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
 "@
             $launcher | Out-File $webuiLauncher -Encoding utf8
+            Rotate-LogFile "$logDir\openwebui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
             Start-Sleep -Seconds 3
             Write-Host "Open Web UI started. URL: http://$($webuiHost):$webuiPort"
@@ -310,6 +313,25 @@ open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
     }
 }
 
+<#
+.SYNOPSIS Rotates a log file: zips if from a previous day, starts fresh.
+Keeps archives for 7 days in <logdir>\archive\. Idempotent if already rotated.
+#>
+function Rotate-LogFile {
+    param([string]$Path)
+    if (!(Test-Path $Path)) { return }
+    $lastWrite = (Get-Item $Path).LastWriteTime
+    if ($lastWrite.Date -lt (Get-Date).Date) {
+        $archiveDir = "$(Split-Path $Path -Parent)\archive"
+        $baseName = (Get-Item $Path).BaseName
+        $archiveName = "$archiveDir\$($baseName)_$($lastWrite.ToString('yyyyMMdd')).zip"
+        if (!(Test-Path $archiveDir)) { New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null }
+        Compress-Archive -Path $Path -DestinationPath $archiveName -Force
+        Remove-Item $Path -Force
+        $pattern = "$archiveDir\$($baseName)_*.zip"
+        Get-ChildItem $pattern -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } | Remove-Item -Force
+    }
+}
 <#
 .SYNOPSIS Tails the log file for a given service. Uses Get-Content -Wait for live output.
 Ctrl+C to exit.
