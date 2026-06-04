@@ -4,7 +4,11 @@ Install ComfyUI and connect to AI_VAULT.
 Requires: 1-init.ps1 and 2-deps.ps1 already run.
 #>
 
-# Try to read root from config first, fall back to prompt
+# ── Root Path Detection ──
+# Tries system_config.json first, then falls back to user prompt.
+# Reads root path from JSON, not from environment variables directly.
+# ─────────────────────────
+
 $Root = $null
 $configPaths = @("D:\AI\AI_CONFIG\system_config.json", "$env:AI_ROOT\AI_CONFIG\system_config.json")
 foreach ($p in $configPaths) {
@@ -20,6 +24,12 @@ if (-not $Root) {
 $Root = $Root.TrimEnd("\")
 
 # Guard: verify critical environment variables
+# ── Environment Variable Verification ──
+# Confirms OLLAMA_MODELS points to vault before proceeding.
+# Prevents ComfyUI from pulling models to the wrong location.
+# Exits with code 1 if variable is wrong; run 'ai setup env' to fix.
+# ──────────────────────────────────────
+
 Write-Host "Checking environment variables..."
 $envChecks = @(
     @{Var="OLLAMA_MODELS"; Expect="${Root}\AI_VAULT\models\llm"; Desc="Ollama model storage"}
@@ -98,7 +108,14 @@ $gpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -matc
 $gpuType = if ($gpu) { "nvidia" } else { "amd" }
 Write-Host "Detected GPU: $gpuType"
 
-# Install deps
+# ── pip Install / DirectML Workaround ──
+# NVIDIA: installs standard requirements.txt (torch with CUDA).
+# AMD: installs torch-directml, then removes CUDA torchaudio DLLs
+# which cause hard crashes on RDNA cards. CPU-only torchaudio is
+# reinstalled from the PyPI cpu index. The stubbed extension module
+# prevents Python from loading the CUDA DLL at import time.
+# ──────────────────────────────────────
+
 Write-Host "Installing requirements..."
 try {
     .\venv\Scripts\Activate.ps1

@@ -44,6 +44,10 @@ if (!(Test-Path $Root)) {
 $Command = $args[0]
 $SubCommand = $args[1]
 
+<#
+.SYNOPSIS Displays the full command reference in a bordered box.
+No side effects. Uses $cmd format string for column alignment.
+#>
 function Show-Help {
     $cmd = "  {0,-26}{1}"
     $boxWidth = 78
@@ -74,6 +78,11 @@ function Show-Help {
     Write-Host ""
 }
 
+<#
+.SYNOPSIS Reads ports.json and returns default config.
+Side effects: none. Falls back to defaults if file is missing.
+Returns hashtable with keys: ollama, comfyui, openwebui, listen (string).
+#>
 function Get-PortConfig {
     $portFile = "${Root}\AI_CONFIG\ports.json"
     $defaults = @{ollama=11434; comfyui=8188; openwebui=8080; listen="0.0.0.0"}
@@ -89,6 +98,12 @@ function Get-PortConfig {
     return $defaults
 }
 
+<#
+.SYNOPSIS Starts, stops, or checks ComfyUI status.
+.Parameter Action Valid values: "start", "stop", "status".
+Side effects (start): regenerates launcher with current port/listen/GPU flag,
+starts a hidden PowerShell process. Requires ComfyUI to be installed.
+#>
 function Manage-ComfyUI {
     param([string]$Action)
     $ports = Get-PortConfig
@@ -412,6 +427,12 @@ function Install-ComfyUI-Manager {
     Pop-Location
 }
 
+<#
+.SYNOPSIS Installs Ollama via winget.
+Side effects: requires admin rights (winget). May trigger UAC prompt.
+Does NOT set OLLAMA_MODELS env var. Run 'ai setup env' after install.
+Idempotent: winget handles upgrades.
+#>
 function Install-Ollama {
     Write-Host "Installing Ollama..."
     winget install Ollama.Ollama --accept-source-agreements
@@ -470,6 +491,13 @@ open-webui serve --host `$hostAddr --port `$port
     Pop-Location
 }
 
+<#
+.SYNOPSIS Displays the service dashboard: status, ports, CPU, RAM, GPU, model counts.
+Side effects: runs netstat, Get-CimInstance (CPU/RAM), Get-Counter (GPU).
+GPU data may be unavailable on some AMD drivers (falls back to name + total VRAM).
+Service status determined by port listening, not process name.
+Only shows services installed through 'ai install' (checks AI_CORE paths).
+#>
 function Show-Status {
     $ports = Get-PortConfig
     $configPath = "$Root\AI_CONFIG\system_config.json"
@@ -677,11 +705,18 @@ public class DxVram {
     }
 }
 
+<#
+.SYNOPSIS Displays all models in bordered tables: LLMs from ollama list, then
+scans vault diffusion/ subdirectories and embeddings/ for actual files.
+Side effects: runs ollama list, Get-ChildItem on vault paths.
+Each vault subdirectory gets its own table with Name and Size columns.
+#>
 function Show-Models {
     $llmDir = "$Root\AI_VAULT\models\llm"
     $diffDir = "$Root\AI_VAULT\models\diffusion"
     $embedDir = "$Root\AI_VAULT\models\embeddings"
 
+    <# .SYNOPSIS Converts bytes to human-readable KB/MB/GB string. #>
     function Format-FileSize($bytes) {
         if ($bytes -ge 1GB) { return "$([math]::Round($bytes / 1GB, 1)) GB" }
         if ($bytes -ge 1MB) { return "$([math]::Round($bytes / 1MB)) MB" }
@@ -760,6 +795,12 @@ function Show-Models {
     }
 }
 
+<#
+.SYNOPSIS Deletes all contents under AI_CACHE subdirectories.
+Side effects: removes huggingface/, torch/, comfyui_temp/, ollama/ contents.
+Does NOT delete the directories themselves, only their contents.
+Safe to run at any time — caches rebuild on next tool use.
+#>
 function Clean-Cache {
     $cacheDirs = @(
         "$Root\AI_CACHE\huggingface",
@@ -782,6 +823,13 @@ function Clean-Cache {
     Write-Host "Total freed: $total MB"
 }
 
+<#
+.SYNOPSIS Checks OLLAMA_MODELS, HF_HOME, TORCH_HOME against expected vault paths.
+Side effects: prompts user to fix each mismatched variable.
+Sets User-level environment variables (persistent, survive reboot).
+Does NOT modify current process session — requires PowerShell restart.
+Exits with code 1 if any variable is skipped.
+#>
 function Setup-Env {
     Write-Host "Checking environment variables..."
     Write-Host ""
@@ -834,6 +882,12 @@ function Setup-Env {
     Write-Host "All environment variables are correct."
 }
 
+<#
+.SYNOPSIS Copies ai.ps1 to AI_TOOLS\ and adds it to User PATH.
+Side effects: overwrites existing AI_TOOLS\ai.ps1.
+Adds to both current session $env:Path and persistent User PATH.
+Run once after install to make 'ai' available from any directory.
+#>
 function Setup-Path {
     $toolsDir = "${Root}\AI_TOOLS"
     $scriptPath = "${toolsDir}\ai.ps1"
@@ -864,6 +918,12 @@ function Setup-Path {
     Write-Host "  You can now use 'ai' from this window and all future windows."
 }
 
+<#
+.SYNOPSIS Interactive port and listen address configuration.
+Side effects: reads/writes AI_CONFIG\ports.json.
+Prompts for each service port and a listen address (0.0.0.0 or 127.0.0.1).
+Only writes to file if something changed. Restart services after changes.
+#>
 function Setup-Ports {
     $portFile = "${Root}\AI_CONFIG\ports.json"
     $defaults = @{ollama=11434; comfyui=8188; openwebui=8080}
@@ -912,6 +972,13 @@ function Setup-Ports {
     }
 }
 
+<#
+.SYNOPSIS Full system diagnostics: versions, bindings, env vars, models.
+Side effects: runs git, python, ollama, ffmpeg version checks.
+Scans AI_CORE paths for installed services.
+Checks model symlinks and environment variable correctness.
+Prints results in a bordered table.
+#>
 function Doctor-Check {
     Write-Host "┌──────────────────────┬──────────────────────────────┐"
 

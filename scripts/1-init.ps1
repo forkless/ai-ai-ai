@@ -91,7 +91,8 @@ foreach ($f in $folders) {
 Write-Host "Folders: $created created, $skipped already exist"
 
 # -------------------------
-# GPU DETECTION
+# GPU DETECTION — Queries WMI for NVIDIA/AMD. Result goes to system_config.json.
+# Only affects backend choice (CUDA vs DirectML) in 3-comfyui.ps1.
 # -------------------------
 
 $gpuType = "unknown"
@@ -102,7 +103,9 @@ if ($amd) { $gpuType = "amd" }
 Write-Host "Detected GPU: $gpuType"
 
 # -------------------------
-# SYMLINKS / BINDINGS
+# SYMLINKS / BINDINGS — Creates directory junctions from AI_CORE\_bindings
+# to AI_VAULT\models\ subfolders. Lets runtimes access models through a
+# stable path regardless of vault layout. Requires admin or Developer Mode.
 # -------------------------
 
 $links = @(
@@ -126,7 +129,9 @@ foreach ($link in $links) {
 }
 
 # -------------------------
-# CONFIG FILES
+# CONFIG FILES — Writes system_config.json (arch version, root, GPU), model_registry.json
+# (empty placeholder), and ports.json (default service ports + listen address).
+# Config and registry have Test-Path guards; ports.json overwrites every run.
 # -------------------------
 
 $configPath = "$BasePath\AI_CONFIG\system_config.json"

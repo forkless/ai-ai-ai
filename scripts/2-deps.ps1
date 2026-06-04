@@ -13,6 +13,13 @@ if (-not $isAdmin) {
 Write-Host "Installing prerequisites..."
 Write-Host ""
 
+# ── Winget Installs ──
+# Each runs winget install with --accept-source-agreements.
+# Exit code 0 = installed; non-zero = already up to date or failed.
+# Results are collected in $results array for summary output.
+# Requires admin rights (checked above).
+# ─────────────────────
+
 $results = @()
 
 Write-Host "--- Git ---"
@@ -61,7 +68,14 @@ Write-Host ""
 Write-Host "Configuring environment variables..."
 Write-Host ""
 
-# Detect root path
+# ── Environment Variables ──
+# Sets OLLAMA_MODELS, HF_HOME, TORCH_HOME as User-scope environment vars.
+# Redirects download caches to AI_CACHE and model storage to AI_VAULT.
+# Detects root path by checking common locations for AI_CONFIG marker file.
+# Only sets if architecture was initialized (1-init.ps1 run).
+# Requires PowerShell restart to take effect.
+# ──────────────────────────
+
 $rootCandidates = @("D:\AI", "$env:AI_ROOT")
 $detectedRoot = $null
 foreach ($c in $rootCandidates) { if (Test-Path "$c\AI_CONFIG") { $detectedRoot = $c; break } }
