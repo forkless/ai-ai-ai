@@ -88,7 +88,7 @@ The scripts detect your GPU and install the correct backend automatically:
 |---------|-------------|
 | Ollama | 11434 |
 | ComfyUI | 8188 |
-| Open Web UI | 8080 |
+| Open Web UI | 3000 |
 
 Change with `ai setup ports`. Settings persist in `AI_CONFIG\ports.json`.
 

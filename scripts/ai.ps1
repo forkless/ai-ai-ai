@@ -85,7 +85,7 @@ Returns hashtable with keys: ollama, comfyui, openwebui, listen (string).
 #>
 function Get-PortConfig {
     $portFile = "${Root}\AI_CONFIG\ports.json"
-    $defaults = @{ollama=11434; comfyui=8188; openwebui=8080; listen="0.0.0.0"}
+    $defaults = @{ollama=11434; comfyui=8188; openwebui=3000; listen="0.0.0.0"}
     if (Test-Path $portFile) {
         $saved = Get-Content $portFile -Raw | ConvertFrom-Json
         $keys = @($defaults.Keys)
@@ -236,7 +236,7 @@ function Manage-WebUI {
             $launcher = @"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
-`$port = 8080
+`$port = 3000
 `$hostAddr = "$webuiHost"
 if (Test-Path `$portFile) {
     `$cfg = Get-Content `$portFile | ConvertFrom-Json
@@ -464,7 +464,7 @@ function Install-OpenWebUI {
     $launcher = @"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
-`$port = 8080
+`$port = 3000
 `$hostAddr = "0.0.0.0"
 if (Test-Path `$portFile) {
     `$cfg = Get-Content `$portFile | ConvertFrom-Json
@@ -485,8 +485,8 @@ open-webui serve --host `$hostAddr --port `$port
     Write-Host "  Location: $webuiPath"
     Write-Host "  Launch: ${Root}\AI_TOOLS\launch_openwebui.ps1"
     Write-Host "  URL: http://127.0.0.1:$defaultPort"
-    if ($defaultPort -ne 8080) {
-        Write-Host "  Port set via AI_CONFIG\ports.json (default is 8080)"
+    if ($defaultPort -ne 3000) {
+        Write-Host "  Port set via AI_CONFIG\ports.json (default is 3000)"
     }
     Pop-Location
 }
@@ -926,7 +926,7 @@ Only writes to file if something changed. Restart services after changes.
 #>
 function Setup-Ports {
     $portFile = "${Root}\AI_CONFIG\ports.json"
-    $defaults = @{ollama=11434; comfyui=8188; openwebui=8080}
+    $defaults = @{ollama=11434; comfyui=8188; openwebui=3000}
     $current = @{}
     $currentListen = $null
     if (Test-Path $portFile) {
