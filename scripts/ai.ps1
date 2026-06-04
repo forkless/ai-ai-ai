@@ -9,7 +9,7 @@ Commands:
   restart <service>  Restart a service (all, ollama, comfyui, openwebui)
   status [service]   System health or specific service status
   doctor             Full system diagnostics
-  models list        List installed models
+  list models        List installed models
   clean cache        Clear temporary files
   setup env          Check and fix environment variables
   setup path         Add AI_TOOLS to PATH for 'ai' from anywhere
@@ -65,7 +65,7 @@ function Show-Help {
     Write-Host ($cmd -f "restart <service>",       "Restart a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "status [service]",       "System health or specific service status")
     Write-Host ($cmd -f "doctor",                 "Full system diagnostics (Git, Python, services, env)")
-    Write-Host ($cmd -f "models list",            "List installed models")
+    Write-Host ($cmd -f "list models",            "List installed models (also: models list)")
     Write-Host ($cmd -f "clean cache",            "Delete all temporary files")
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
@@ -989,9 +989,13 @@ switch ($Command) {
         }
     }
     "doctor"     { Doctor-Check }
+    "list"       {
+        if ($SubCommand -eq "models") { Show-Models }
+        else { Write-Host "Usage: ai list models" }
+    }
     "models"     {
         if ($SubCommand -eq "list") { Show-Models }
-        else { Write-Host "Usage: ai models list" }
+        else { Write-Host "Usage: ai list models (also: ai models list)" }
     }
     "clean"      {
         if ($SubCommand -eq "cache") { Clean-Cache }
