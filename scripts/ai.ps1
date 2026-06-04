@@ -71,7 +71,7 @@ function Show-Help {
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
     Write-Host ($cmd -f "setup ports",            "Configure service ports")
-    Write-Host ($cmd -f "watch <service>",        "Tail service logs (comfyui, ollama, openwebui)")
+    Write-Host ($cmd -f "watch <service>",        "Watch service log (comfyui, ollama, openwebui)")
     Write-Host ($cmd -f "help",                   "Show this message")
     Write-Host ""
 }
