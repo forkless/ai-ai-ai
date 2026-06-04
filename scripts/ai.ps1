@@ -67,7 +67,7 @@ function Show-Help {
     Write-Host ($cmd -f "status <service>",       "System health or specific service status")
     Write-Host ($cmd -f "doctor",                 "Full system diagnostics (Git, Python, services, env)")
     Write-Host ($cmd -f "list",                   "List installed models, checkpoints, embeddings")
-    Write-Host ($cmd -f "clean cache",            "Free up temporary disk space")
+    Write-Host ($cmd -f "clean cache",            "Free up temporary disk space (preserves Hugging Face cache)")
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
     Write-Host ($cmd -f "setup ports",            "Configure service ports")
@@ -911,7 +911,7 @@ function Show-Models {
 <#
 .SYNOPSIS Deletes all contents under AI_CACHE subdirectories.
 Side effects: removes torch/ and comfyui_temp/ contents.
-HF_HOME (under AI_VAULT\.cache) is not in AI_CACHE and is not affected.
+Hugging Face cache (HF_HOME) is preserved — in-flight downloads would break.
 Does NOT delete the directories themselves, only their contents.
 #>
 function Clean-Cache {
@@ -947,7 +947,7 @@ function Setup-Env {
 
     $vars = @(
         @{Name="OLLAMA_MODELS"; Expected="${Root}\AI_VAULT\models\llm"; Scope="User"; Help="Controls where Ollama stores models. Set before pulling."},
-        @{Name="HF_HOME"; Expected="${Root}\AI_VAULT\.cache\huggingface"; Scope="User"; Help="Hugging Face cache under vault (persistent — not cleaned)."},
+        @{Name="HF_HOME"; Expected="${Root}\AI_CACHE\huggingface"; Scope="User"; Help="Hugging Face cache in AI_CACHE (preserved by clean cache — in-flight downloads)."},
         @{Name="TORCH_HOME"; Expected="${Root}\AI_CACHE\torch"; Scope="User"; Help="Keeps PyTorch cache in AI_CACHE, not AI_VAULT."}
     )
 
@@ -1149,9 +1149,8 @@ function Doctor-Check {
     $envOk = $true
     $expVault = "$Root\AI_VAULT\models\llm"
     $expCache = "$Root\AI_CACHE"
-    $expHfCache = "$Root\AI_VAULT\.cache\huggingface"
     if (([Environment]::GetEnvironmentVariable("OLLAMA_MODELS","User")) -ne $expVault) { $envOk = $false }
-    if (([Environment]::GetEnvironmentVariable("HF_HOME","User")) -ne $expHfCache) { $envOk = $false }
+    if (([Environment]::GetEnvironmentVariable("HF_HOME","User")) -ne "${expCache}\huggingface") { $envOk = $false }
     if (([Environment]::GetEnvironmentVariable("TORCH_HOME","User")) -ne "${expCache}\torch") { $envOk = $false }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", $(if ($envOk) { "OK" } else { "MIS" }))
 
