@@ -212,10 +212,13 @@ if (Test-Path $portFile) {
     if ($cfg.comfyui -and $cfg.comfyui -gt 0) { $comfyPort = [int]$cfg.comfyui }
     if ($cfg.listen) { $listenAddr = $cfg.listen }
 }
+$logDir = "${Root}\AI_CACHE\logs"
+if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $launcher = @"
+`$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
 $toolsDir = "${Root}\AI_TOOLS"
 if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }

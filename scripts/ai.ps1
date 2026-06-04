@@ -127,10 +127,13 @@ function Manage-ComfyUI {
             # Regenerate launcher with current listen address
             $gpuFlag = if ((Get-GPUType) -eq "amd") { " --directml" } else { "" }
             $comfyPath = "${Root}\AI_CORE\Apps\ComfyUI"
+            $logDir = "${Root}\AI_CACHE\logs"
+            if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
             $launcherContent = @"
+`$logFile = "$logDir\comfyui.log"
 Set-Location "$comfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
@@ -188,9 +191,12 @@ function Manage-Ollama {
             Write-Host "Starting Ollama in background..."
             # Generate launcher with listen address
             $ollamaLauncher = "${Root}\AI_TOOLS\launch_ollama.ps1"
+            $logDir = "${Root}\AI_CACHE\logs"
+            if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
             $launcher = @"
+`$logFile = "$logDir\ollama.log"
 `$env:OLLAMA_HOST = "${ollamaHost}:${ollamaPort}"
-ollama serve
+ollama serve *>> "`$logFile"
 "@
             $launcher | Out-File $ollamaLauncher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
@@ -251,7 +257,10 @@ function Manage-WebUI {
             }
             Write-Host "Starting Open Web UI..."
             # Regenerate launcher with current listen address
+            $logDir = "${Root}\AI_CACHE\logs"
+            if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
             $launcher = @"
+`$logFile = "$logDir\openwebui.log"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
 `$port = 3000
@@ -263,7 +272,7 @@ if (Test-Path `$portFile) {
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --host `$hostAddr --port `$port
+open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
 "@
             $launcher | Out-File $webuiLauncher -Encoding utf8
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
@@ -445,10 +454,13 @@ vault_config:
     # Launcher with GPU flag and listen address
     $gpuFlag = if ($gpu -eq "amd") { " --directml" } else { "" }
     $listenAddr = "0.0.0.0"
+    $logDir = "${Root}\AI_CACHE\logs"
+    if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
     $launcher = @"
+`$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --listen $listenAddr --port 8188 --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag
+python main.py --listen $listenAddr --port 8188 --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
     # Ensure target directory exists
     $toolsDir = "${Root}\AI_TOOLS"
@@ -514,7 +526,10 @@ function Install-OpenWebUI {
     deactivate
 
     # Launcher that reads port and listen address from config
+    $logDir = "${Root}\AI_CACHE\logs"
+    if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
     $launcher = @"
+`$logFile = "$logDir\openwebui.log"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
 `$port = 3000
@@ -526,7 +541,7 @@ if (Test-Path `$portFile) {
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --host `$hostAddr --port `$port
+open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
 "@
 
     $toolsDir = "${Root}\AI_TOOLS"
