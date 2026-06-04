@@ -30,7 +30,7 @@
 - **`ai watch`** — renamed from `ai tail`
 
 ### Cache policy
-- **HF_HOME no longer cleaned** — `ai clean cache` preserves Hugging Face downloads; they are model data, not scratch cache. Removed `huggingface/` from `Clean-Cache` directory list and updated all help/description text.
+- **HF_HOME no longer cleaned** — `ai clean cache` preserves Hugging Face cache; in-progress downloads would be corrupted otherwise. Removed `huggingface/` from `Clean-Cache` directory list and updated all help/description text.
 
 ### Documentation
 - Updated README daily-use table, vault layout description, cache folder description
