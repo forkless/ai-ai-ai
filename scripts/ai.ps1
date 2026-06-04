@@ -71,7 +71,7 @@ function Show-Help {
     Write-Host ($cmd -f "setup env",              "Check and fix environment variables")
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
     Write-Host ($cmd -f "setup ports",            "Configure service ports")
-    Write-Host ($cmd -f "tail <service>",         "Tail service logs (comfyui, ollama, openwebui)")
+    Write-Host ($cmd -f "watch <service>",        "Tail service logs (comfyui, ollama, openwebui)")
     Write-Host ($cmd -f "help",                   "Show this message")
     Write-Host ""
 }
@@ -314,7 +314,7 @@ open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
 .SYNOPSIS Tails the log file for a given service. Uses Get-Content -Wait for live output.
 Ctrl+C to exit.
 #>
-function Show-Tail {
+function Show-Watch {
     param([string]$Service)
     $logDir = "${Root}\AI_CACHE\logs"
     $logFiles = @{
@@ -324,14 +324,14 @@ function Show-Tail {
     }
     $logFile = $logFiles[$Service]
     if (-not $logFile) {
-        Write-Host "Usage: ai tail <comfyui|ollama|openwebui>"
+        Write-Host "Usage: ai watch <comfyui|ollama|openwebui>"
         exit 1
     }
     if (!(Test-Path $logFile)) {
         Write-Host "No log file found for $Service. Start the service first."
         exit 1
     }
-    Write-Host "Tailing $Service log (Ctrl+C to exit)..."
+    Write-Host "Watching $Service log (Ctrl+C to exit)..."
     Get-Content -Path $logFile -Tail 30 -Wait
 }
 
@@ -1186,9 +1186,9 @@ switch ($Command) {
         }
     }
     "doctor"     { Doctor-Check }
-    "tail"       {
-        if ($SubCommand) { Show-Tail $SubCommand }
-        else { Write-Host "Usage: ai tail <comfyui|ollama|openwebui>" }
+    "watch"      {
+        if ($SubCommand) { Show-Watch $SubCommand }
+        else { Write-Host "Usage: ai watch <comfyui|ollama|openwebui>" }
     }
     "list"       {
         if (-not $SubCommand) { Show-Models }
