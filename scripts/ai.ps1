@@ -882,6 +882,7 @@ function Doctor-Check {
         $cfg = Get-Content $configPath | ConvertFrom-Json
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($($cfg.gpu.ToUpper()))")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
     } else {
         Write-Host "│ not initialized      │ run 1-init.ps1"
         return
