@@ -676,18 +676,25 @@ function Show-Models {
     $diffDir = "$Root\AI_VAULT\models\diffusion"
     $embedDir = "$Root\AI_VAULT\models\embeddings"
 
+    function Format-FileSize($bytes) {
+        if ($bytes -ge 1GB) { return "$([math]::Round($bytes / 1GB, 1)) GB" }
+        if ($bytes -ge 1MB) { return "$([math]::Round($bytes / 1MB)) MB" }
+        if ($bytes -ge 1KB) { return "$([math]::Round($bytes / 1KB)) KB" }
+        return "$bytes B"
+    }
     function List-Files($dir, $header, $pattern) {
         if (!(Test-Path $dir)) { return }
         $items = Get-ChildItem "$dir\*" -Include $pattern -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }
         if ($items.Count -eq 0) { return }
-        $maxLen = [Math]::Max($header.Length, ($items | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
-        Write-Host "┌─$("─" * $maxLen)─┐"
-        Write-Host ("│ {0,-$maxLen} │" -f $header)
-        Write-Host "├─$("─" * $maxLen)─┤"
+        $namePad = [Math]::Max($header.Length, ($items | ForEach-Object { $_.BaseName.Length } | Measure-Object -Maximum).Maximum + 2)
+        $sizePad = 7
+        Write-Host "┌─$("─" * $namePad)─┬─$("─" * $sizePad)─┐"
+        Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $header, "Size")
+        Write-Host "├─$("─" * $namePad)─┼─$("─" * $sizePad)─┤"
         foreach ($item in $items) {
-            Write-Host ("│ {0,-$maxLen} │" -f $item.BaseName)
+            Write-Host ("│ {0,-$namePad} │ {1,$sizePad} │" -f $item.BaseName, (Format-FileSize $item.Length))
         }
-        Write-Host "└─$("─" * $maxLen)─┘"
+        Write-Host "└─$("─" * $namePad)─┴─$("─" * $sizePad)─┘"
         Write-Host ""
     }
 
