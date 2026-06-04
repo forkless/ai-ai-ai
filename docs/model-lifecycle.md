@@ -104,49 +104,25 @@ Before anything enters the vault:
 
 If validation fails → discard cache entry. If it passes → continue.
 
-### Step 3: Normalization / Conversion
+### Step 3: Normalization / Conversion (deferred)
 
-Convert the framework-native repo structure into the canonical vault format.
-
-**From HF cache:**
-```
-snapshots/<hash>/
-  model.safetensors
-  tokenizer.json
-  config.json
-```
-
-**To vault:**
-```
-AI_VAULT/models/llm/my-model/
-  model.safetensors
-  config.json
-  tokenizer.json
-  manifest.json
-```
-
-No blobs. No snapshots. No HF folder structure. Only clean, stable artifacts.
-
-### Step 4: Variant Generation (optional)
-
-From one source model, generate multiple deployment variants:
+*Not implemented in v1.* Future pipeline stage. Would convert framework-native repo
+structures into a canonical vault format. For now, the model is promoted as-is.
 
 ```
-fp16/          (high precision, GPU)
-int8/          (balanced, GPU)
-gguf-q4/       (CPU / llama.cpp)
-gguf-q5/       (higher quality CPU)
+AI_VAULT/models/<category>/<name>/
+  config.json        (real file, resolved from symlink)
+  model.safetensors  (real file, resolved from symlink)
+  tokenizer.json     (real file, resolved from symlink)
 ```
 
-Each variant targets a different runtime:
+No blobs. No snapshots. No HF folder structure. Only resolved flat files.
 
-| Runtime | Format |
-|---------|--------|
-| Transformers | safetensors |
-| Ollama / llama.cpp | GGUF |
-| ComfyUI | diffusion-specific layout |
+### Step 4: Variant Generation (deferred)
 
-Variants are stored under the model's vault directory.
+*Not implemented in v1.* Future pipeline stage. Would generate quantized variants
+(fp16, int8, GGUF) from a single source model and store them under
+`AI_VAULT/models/<name>/variants/<type>/`.
 
 ### Step 5: Promote → AI_VAULT
 
@@ -193,8 +169,8 @@ The model is now discoverable by the resolver and available to all runtimes thro
 |------|----------|--------|
 | 1. Download | AI_CACHE | Fetch from source |
 | 2. Validate | AI_CACHE | Integrity + format check |
-| 3. Convert | AI_CACHE → vault | Normalize structure |
-| 4. Build variants | AI_VAULT | Optional compilation |
+| 3. Resolve | AI_CACHE → vault | Resolve symlinks, promote as-is (conversion deferred) |
+| 4. Build variants | *deferred* | *not implemented in v1* |
 | 5. Promote | AI_VAULT | Canonical artifact |
 | 6. Register | AI_CONFIG | Write registry entry |
 | 7. Serve | AI_CORE | Runtime resolution |
@@ -204,7 +180,7 @@ The model is now discoverable by the resolver and available to all runtimes thro
 | Problem | How the pipeline fixes it |
 |---------|--------------------------|
 | HF is not canonical | Vault has a stable, normalized format |
-| Different runtimes need different layouts | Variant generation targets each runtime |
+| Different runtimes need different layouts | *Deferred* — variant generation targets each runtime |
 | Models need lifecycle control | Registry tracks status, pinned state, versions |
 | Cache is not trustworthy storage | Validation gate + canonical vault artifact |
 
@@ -215,7 +191,7 @@ The model is now discoverable by the resolver and available to all runtimes thro
 | Download | Source fetch |
 | Validate | Lint / typecheck |
 | Convert | Compilation |
-| Variants | Build targets |
+| Variants | Build targets *(deferred)* |
 | Vault | Artifact output |
 | Registry | Linker symbol table |
 
@@ -493,7 +469,7 @@ Apps never see disk paths. They request by model name only.
 | AI_VAULT | Binary object files |
 | Registry | Symbol table |
 | Resolver | Linker |
-| Variants | Build targets |
+| Variants | Build targets *(deferred)* |
 | AI_CACHE | Source/build artifacts (never participates in final selection) |
 
 ### Final Mental Model
