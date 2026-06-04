@@ -354,6 +354,12 @@ vault_config:
     loras: $Root\AI_VAULT\models\diffusion\loras
     vae: $Root\AI_VAULT\models\diffusion\vae
     controlnet: $Root\AI_VAULT\models\diffusion\controlnet
+    unet: $Root\AI_VAULT\models\diffusion\unet
+    text_encoders: $Root\AI_VAULT\models\diffusion\text_encoders
+    upscale_models: $Root\AI_VAULT\models\diffusion\upscale_models
+    ipadapter: $Root\AI_VAULT\models\diffusion\ipadapter
+    style_models: $Root\AI_VAULT\models\diffusion\style_models
+    clip_vision: $Root\AI_VAULT\models\diffusion\clip_vision
     embeddings: $Root\AI_VAULT\models\embeddings
 "@
     $yaml | Out-File "$ComfyPath\extra_model_paths.yaml" -Encoding utf8
