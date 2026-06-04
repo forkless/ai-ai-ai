@@ -152,6 +152,10 @@ python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\A
                 while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
                     Start-Sleep -Seconds 1; $timeout--
                 }
+                if (Get-Process -Id $procId -ErrorAction SilentlyContinue) {
+                    Write-Host "ERROR: Could not stop ComfyUI. Close it manually and try again."
+                    exit 1
+                }
                 Write-Host "ComfyUI stopped."
             } else {
                 Write-Host "Could not find ComfyUI process."
@@ -206,6 +210,10 @@ ollama serve
                 $timeout = 10
                 while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
                     Start-Sleep -Seconds 1; $timeout--
+                }
+                if (Get-Process -Id $procId -ErrorAction SilentlyContinue) {
+                    Write-Host "ERROR: Could not stop Ollama. Close it manually and try again."
+                    exit 1
                 }
                 Write-Host "Ollama stopped."
             } else {
@@ -275,6 +283,10 @@ open-webui serve --host `$hostAddr --port `$port
                 $timeout = 10
                 while ($timeout -gt 0 -and (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
                     Start-Sleep -Seconds 1; $timeout--
+                }
+                if (Get-Process -Id $procId -ErrorAction SilentlyContinue) {
+                    Write-Host "ERROR: Could not stop Open Web UI. Close it manually and try again."
+                    exit 1
                 }
                 Write-Host "Open Web UI stopped."
             } else {
