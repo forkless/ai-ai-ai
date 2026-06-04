@@ -232,6 +232,166 @@ The registry replaces the current vault-scan approach. Instead of walking direct
 4. **Ollama integration** — Ollama pulls go to `AI_VAULT/models/llm/` via `OLLAMA_MODELS`. Should those auto-register?
 5. **ComfyUI model discovery** — ComfyUI's model folders under the vault aren't in the registry today. Should `ai doctor` / `ai list` detect unregistered vault models and offer to index them?
 
+## Model Resolution Pipeline
+
+The registry is a static index. The resolver is the runtime that uses it to pick the right file.
+
+### The Problem
+
+A single model name is no longer enough. A model may have:
+
+- **Multiple formats:** `safetensors`, `gguf`, `pytorch`
+- **Multiple quantizations:** `fp16`, `int8`, `q4`
+- **Multiple runtimes:** Ollama needs GGUF, Transformers needs safetensors, ComfyUI needs diffusion format
+- **Hardware constraints:** GPU with 12GB VRAM vs 24GB vs CPU-only
+
+Given a request, AI_CORE must decide exactly which file to load.
+
+### Resolution Pipeline
+
+```
+request → registry → candidate set → scoring → final artifact path
+```
+
+### Step 1: Registry with Variants
+
+The registry schema expands to include variants per model:
+
+```json
+{
+  "llm:my-model": {
+    "base_path": "AI_VAULT/models/llm/my-model",
+    "variants": [
+      {
+        "id": "fp16",
+        "format": "safetensors",
+        "quant": "fp16",
+        "device": "gpu",
+        "priority": 10
+      },
+      {
+        "id": "int8",
+        "format": "safetensors",
+        "quant": "int8",
+        "device": "cpu",
+        "priority": 5
+      },
+      {
+        "id": "gguf-q4",
+        "format": "gguf",
+        "quant": "q4",
+        "runtime": "llama.cpp",
+        "priority": 8
+      }
+    ]
+  }
+}
+```
+
+The registry is no longer a path list — it is a **decision graph**.
+
+### Step 2: Runtime Context
+
+When a model is requested, AI_CORE knows the current context:
+
+```json
+{
+  "device": "gpu",
+  "vram_gb": 12,
+  "runtime": "transformers",
+  "latency": "balanced"
+}
+```
+
+### Step 3: Scoring Function
+
+Each variant receives a score based on how well it matches the runtime context:
+
+```
+score =
+  + device_match      (GPU variant on GPU system: +3)
+  + format_match      (format compatible with runtime: +2)
+  + quant_preference  (higher precision: +3, efficient: +3)
+  + explicit_priority (registry priority field)
+  - penalties         (VRAM overflow: -10, runtime mismatch: -5)
+```
+
+Example:
+
+| Variant | GPU match | Quality | Efficiency | Runtime | Score |
+|---------|-----------|---------|------------|---------|-------|
+| fp16    | +3        | +3      | 0          | +2      | **8** |
+| int8    | +3        | +1      | +3         | +2      | **9** |
+| gguf    | 0         | 0       | +3         | -5      | **-2** |
+
+Int8 wins — efficient GPU variant with acceptable quality.
+
+### Step 4: Selection
+
+```
+selected = argmax(variants, score)
+```
+
+Tiebreaker: higher precision, then higher registry priority.
+
+### Step 5: Resolution Output
+
+```json
+{
+  "model": "llm:my-model",
+  "selected_variant": "int8",
+  "path": "AI_VAULT/models/llm/my-model/int8/",
+  "runtime": "transformers"
+}
+```
+
+### Step 6: Binding Layer Abstraction
+
+With the resolver in place, `_bindings` becomes a function call, not a symlink:
+
+```
+AI_CORE/_bindings/llm → model_resolver("llm:my-model")
+```
+
+Apps never see disk paths. They request by model name only.
+
+### What This Enables
+
+| Capability | How |
+|------------|-----|
+| **Automatic hardware adaptation** | Same model, different machine → different variant selected |
+| **Multi-runtime support** | Ollama → GGUF, Transformers → safetensors, ComfyUI → diffusion |
+| **Graceful fallback** | fp16 fails → auto fallback to int8 |
+| **Clean upgrades** | Add fp8, new quantizations without changing app code |
+
+### Architectural Analogy
+
+| Concept | Analogy |
+|---------|---------|
+| AI_VAULT | Binary object files |
+| Registry | Symbol table |
+| Resolver | Linker |
+| Variants | Build targets |
+| AI_CACHE | Source/build artifacts (never participates in final selection) |
+
+### Final Mental Model
+
+```
+REQUEST (llm:my-model)
+  ↓
+AI_CORE resolver
+  ↓
+AI_CONFIG (registry + variants)
+  ↓
+scoring engine (runtime context × variant properties)
+  ↓
+AI_VAULT (final artifact path)
+  ↓
+runtime execution
+```
+
+You are no longer picking a model file. You are resolving the best execution target for a model under current constraints.
+
 ## Future: Automated Model Management
 
 Beyond manual promote, the architecture supports:
