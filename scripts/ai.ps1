@@ -61,9 +61,6 @@ function Show-Help {
     Write-Host "Usage: ai <command>"
     Write-Host "Commands:"
     Write-Host ($cmd -f "install <app>",           "Install or update comfyui, comfyui-manager, ollama, openwebui or all")
-    Write-Host ($cmd -f "install comfyui-manager","Install ComfyUI-Manager custom nodes")
-    Write-Host ($cmd -f "install ollama",         "Install Ollama via winget")
-    Write-Host ($cmd -f "install openwebui",      "Install Open Web UI for Ollama")
     Write-Host ($cmd -f "start <service>",        "Start a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "stop <service>",         "Stop a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "restart <service>",       "Restart a service (all, ollama, comfyui, openwebui)")
