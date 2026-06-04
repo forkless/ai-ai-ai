@@ -486,7 +486,7 @@ function Show-Status {
     foreach ($svc in $services) {
         $running = netstat -an 2>$null | Select-String "LISTENING" | Select-String ":$($svc.Port) "
         $installed = Test-Path $svc.Path
-        $status = if ($installed -and $running) { "Up" } elseif ($installed) { "Stopped" } else { "──" }
+        $status = if ($installed -and $running) { "Started" } elseif ($installed) { "Stopped" } else { "──" }
         $portTxt = if ($installed) { $svc.Port.ToString() } else { "──" }
         Write-Host ("│ {0,-12} │ {1,-7} │ {2,-6} │" -f $svc.Name, $status, $portTxt)
     }
