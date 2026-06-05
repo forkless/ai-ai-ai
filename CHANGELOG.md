@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-05
+
+### Startup reliability
+- **Silent start** — `ai start`, `ai stop`, `ai restart` are now quiet on success; errors dump the log tail and exit with code 1
+- **Post-launch verification** — all three `Manage-*` "start" actions verify the port is listening after the sleep wait; failure shows last 15 lines of the service log
+- **Log rotation per start** — `Rotate-LogFile` now archives the log file on every `ai start`, not just cross-day. Each session gets a clean log for accurate error diagnosis
+- **Open Web UI wait increased** — sleep bumped from 3 to 5 seconds to allow Alembic migrations
+
+### Bugs
+- **Install-ComfyUI launcher port** — was hardcoded to `8188` regardless of `ports.json` config; now reads from `Get-PortConfig`
+- **Install-ComfyUI launcher listen address** — was hardcoded to `0.0.0.0`; now reads from `Get-PortConfig`
+
 ## 2026-06-04
 
 ### Ports
