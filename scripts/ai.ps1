@@ -432,6 +432,10 @@ function Install-ComfyUI {
             $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
         }
         if ([string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
+        if ($Backend -ne "directml" -and $Backend -ne "rocm") {
+            Write-Host "WARNING: Unknown backend '$Backend', defaulting to directml"
+            $Backend = "directml"
+        }
     }
 
     $venvName = if ($Backend -eq "rocm") { "venv_rocm" } else { "venv" }

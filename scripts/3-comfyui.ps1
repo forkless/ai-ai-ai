@@ -99,6 +99,10 @@ if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
     $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
 }
 if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
+if ($gpuType -eq "amd" -and $Backend -ne "directml" -and $Backend -ne "rocm") {
+    Write-Host "WARNING: Unknown backend '$Backend', defaulting to directml"
+    $Backend = "directml"
+}
 
 $venvName = if ($Backend -eq "rocm") { "venv_rocm" } else { "venv" }
 $pythonVer = if ($Backend -eq "rocm") { "3.12" } else { "3.11" }
