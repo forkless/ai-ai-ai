@@ -498,7 +498,7 @@ function Install-ComfyUI {
         Write-Host "AMD GPU — installing DirectML stack..."
         pip install torch-directml 2>&1 | Out-Null
         pip install -r requirements.txt 2>&1 | Out-Null
-        Write-Host "  Replacing CUDA torchaudio with CPU version..."
+        Write-Host "  Patching torchaudio for DirectML (removing CUDA stubs)..."
         pip install torchaudio --force-reinstall --no-deps --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 2>&1 | Out-Null
         $extDir = "$ComfyPath\venv\Lib\site-packages\torchaudio\_extension"
         if (Test-Path $extDir) { Remove-Item -Recurse -Force $extDir }
@@ -509,7 +509,7 @@ def fail_if_no_align(f): return f
 def _init_extension(): pass
 def _load_lib(*a): return False
 "@ | Set-Content -Path "$ComfyPath\venv\Lib\site-packages\torchaudio\_extension\__init__.py"
-        Write-Host "  DirectML and CPU torchaudio ready"
+        Write-Host "  DirectML stack ready (torchaudio patched)"
         deactivate
     }
 
