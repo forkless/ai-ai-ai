@@ -57,7 +57,7 @@ $wheelPath = "insightface-0.7.3-cp312-cp312-win_amd64.whl"
 if ($venvName -eq "venv_rocm") {
     # ROCm venv is cp312 — wheel matches
     if (Test-Path $wheelPath) {
-        & $pythonExe -m pip install --force-reinstall $wheelPath
+        & $pythonExe -m pip install $wheelPath
         if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: insightface install failed"; exit 1 }
     } else {
         Write-Host "WARNING: $wheelPath not found in current directory. Place it here or specify full path."
