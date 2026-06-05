@@ -425,11 +425,24 @@ function Install-ComfyUI {
     # Backend selection for AMD
     if ($gpu -eq "amd") {
         if ([string]::IsNullOrEmpty($Backend)) {
-            Write-Host "Choose ComfyUI backend for AMD GPU:"
-            Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
-            Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
-            $choice = Read-Host "Select backend (default: directml)"
-            $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
+            # Read existing backend from config to avoid re-prompting on upgrades
+            $existingCfg = $null
+            if (Test-Path "$Root\AI_CONFIG\system_config.json") {
+                $existingCfg = Get-Content "$Root\AI_CONFIG\system_config.json" -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+            }
+            if ($existingCfg -and $existingCfg.comfyui_backend -eq "rocm") {
+                $Backend = "rocm"
+                Write-Host "Using existing ROCm backend (pass -Backend directml to switch)"
+            } elseif ($existingCfg -and $existingCfg.comfyui_backend -eq "directml") {
+                $Backend = "directml"
+                Write-Host "Using existing DirectML backend (pass -Backend rocm to switch)"
+            } else {
+                Write-Host "Choose ComfyUI backend for AMD GPU:"
+                Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
+                Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
+                $choice = Read-Host "Select backend (default: directml)"
+                $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
+            }
         }
         if ([string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
         if ($Backend -ne "directml" -and $Backend -ne "rocm") {
