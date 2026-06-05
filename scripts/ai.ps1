@@ -142,7 +142,7 @@ function Manage-ComfyUI {
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$comfyPath"
 $activatePath
-python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --reserve-vram 1.2 --force-fp32$gpuFlag *>> "`$logFile"
+python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
             # Rotate log so error output reflects only this session
@@ -589,7 +589,7 @@ vault_config:
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 $activatePath
-python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --reserve-vram 1.2 --force-fp32$gpuFlag *>> "`$logFile"
+python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
 "@
     # Ensure target directory exists
     $toolsDir = "${Root}\AI_TOOLS"

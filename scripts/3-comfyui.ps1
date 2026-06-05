@@ -284,7 +284,7 @@ $launcher = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 $activatePath
-python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --reserve-vram 1.2 --force-fp32$gpuFlag *>> "`$logFile"
+python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
 "@
 $toolsDir = "${Root}\AI_TOOLS"
 if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }

@@ -30,6 +30,9 @@ Or set it in the launch script before the `python` line.
 
 | Flag | Purpose |
 |------|---------|
+| `--use-pytorch-cross-attention` | Use PyTorch native cross-attention (default in launcher) |
+| `--disable-smart-memory` | Disable ComfyUI smart memory management (default in launcher) |
+| `--bf16-unet` | Run UNet in bfloat16 precision on ROCm (default in launcher) |
 | `--reserve-vram <GB>` | Reserve VRAM for system/other GPU tasks (e.g., `1.2` = 1.2 GB) |
 | `--force-fp32` | Force float32 computation; avoids fp16 precision issues on some AMD cards |
 | `--output-directory <path>` | Save generated images to a custom directory |
