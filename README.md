@@ -1,5 +1,9 @@
 # Ai, ai, ai! Bootstrap v0.1.1
 
+> **⚠️ WARNING:** These scripts are functional but far from ready for general use.
+> You will encounter rough edges, incomplete error handling, and sharp corners.
+> Proceed at your own risk.
+
 Provision a structured local AI workstation on Windows in three scripts. Models,
 runtimes, config, workspace, tools, and caches each get their own layer — no
 duplication, safe reinstalls, no lost models.
