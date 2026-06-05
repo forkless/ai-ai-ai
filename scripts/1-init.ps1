@@ -64,6 +64,7 @@ $folders = @(
     "$BasePath\AI_VAULT\models\insightface",
     "$BasePath\AI_VAULT\models\ultralytics",
     "$BasePath\AI_VAULT\models\ultralytics\bbox",
+    "$BasePath\AI_VAULT\models\sams",
     "$BasePath\AI_VAULT\datasets",
     "$BasePath\AI_WORKSPACE",
     "$BasePath\AI_WORKSPACE\workflows",
