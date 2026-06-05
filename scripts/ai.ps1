@@ -1192,6 +1192,12 @@ function Doctor-Check {
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($($cfg.gpu.ToUpper()))")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
+        # ROCm check
+        $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\python.exe"
+        if (Test-Path $pyExe) {
+            $rocmOut = & $pyExe -c "import torch; print('ROCm' if torch.cuda.is_available() else 'no GPU')" 2>$null
+            Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $(if ($rocmOut -eq "ROCm") { "avail" } else { $rocmOut }))
+        }
     } else {
         Write-Host "│ not initialized      │ run 1-init.ps1"
         return
