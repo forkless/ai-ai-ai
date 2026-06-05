@@ -1,5 +1,5 @@
 <#
-1-init.ps1 — Ai, ai, ai! Bootstrap v1.1.2
+1-init.ps1 — Ai, ai, ai! Bootstrap v0.1.1
 Creates folder structure + config + bindings only.
 No software installation.
 #>
@@ -138,7 +138,7 @@ foreach ($link in $links) {
 $configPath = "$BasePath\AI_CONFIG\system_config.json"
 if (!(Test-Path $configPath)) {
     $config = @{
-        architecture_version = "1.1"
+        architecture_version = "0.1.1"
         platform = "windows"
         root = $BasePath
         vault = "$BasePath\AI_VAULT"
@@ -171,7 +171,7 @@ $portConfig | ConvertTo-Json | Out-File "${BasePath}\AI_CONFIG\ports.json" -Enco
 Write-Host "Port config: ports.json (defaults)"
 
 Write-Host ""
-Write-Host "===== Ai, ai, ai! Bootstrap v1.1.2 ====="
+Write-Host "===== Ai, ai, ai! Bootstrap v0.1.1 ====="
 Write-Host "Architecture initialization complete"
 Write-Host "  Root: $BasePath"
 Write-Host "  Folders: $created new, $skipped existing"

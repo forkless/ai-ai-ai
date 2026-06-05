@@ -1,5 +1,5 @@
 <#
-Ai, ai, ai! Control Panel v1.1 — daily driver for the Ai Bootstrap system
+Ai, ai, ai! Control Panel v0.1.1 — daily driver for the Ai Bootstrap system
 Usage:  ai <command> [options]
 
 Commands:
@@ -57,7 +57,7 @@ No side effects. Uses $cmd format string for column alignment.
 function Show-Help {
     $cmd = "  {0,-26}{1}"
     $boxWidth = 78
-    $title = " Ai, ai, ai! Control Panel v1.1 "
+    $title = " Ai, ai, ai! Control Panel v0.1.1 "
     $inner = $boxWidth - 2
     $lPad = [Math]::Max(0, [Math]::Floor(($inner - $title.Length) / 2))
     Write-Host "┌$("─" * $inner)┐"

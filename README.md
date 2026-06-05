@@ -1,4 +1,4 @@
-# Ai, ai, ai! Bootstrap v1.1.2
+# Ai, ai, ai! Bootstrap v0.1.1
 
 Provision a structured local AI workstation on Windows in three scripts. Models,
 runtimes, config, workspace, tools, and caches each get their own layer — no
