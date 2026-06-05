@@ -47,6 +47,9 @@ $SubCommand = $args[1]
 # Normalize --version to version
 if ($Command -eq "--version" -or $Command -eq "-v") { $Command = "version" }
 
+# Easter egg
+if ($Command -eq "--boobs") { Write-Host "(o)(o)`n"; Write-Host "The fastest stable diffussion of boobs... ever."; exit 0 }
+
 # Extract -Backend option from remaining args
 $BackendArg = ""
 for ($i = 2; $i -lt $args.Count; $i++) {

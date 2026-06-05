@@ -20,6 +20,9 @@
 - **Install-ComfyUI launcher port** — was hardcoded to `8188` regardless of `ports.json` config; now reads from `Get-PortConfig`
 - **Install-ComfyUI launcher listen address** — was hardcoded to `0.0.0.0`; now reads from `Get-PortConfig`
 
+### CLI
+- **`ai --boobs`** — Easter egg, courtesy of Moby
+
 ## 2026-06-04
 
 ### Ports
