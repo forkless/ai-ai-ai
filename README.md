@@ -84,7 +84,9 @@ Get-ChildItem *.ps1 | Unblock-File
 The scripts detect your GPU and install the correct backend automatically:
 
 - **NVIDIA** — CUDA (via standard torch)
-- **AMD** — DirectML (torch-directml) with a torchaudio workaround to avoid CUDA DLL crashes
+- **AMD** — DirectML or ROCm. DirectML is the default compatible backend; ROCm
+  (native PyTorch, Python 3.12) is available for faster inference on AMD GPUs
+  with driver 26.2.2+. Select during install or pass `-Backend rocm`.
 
 ## Port Configuration
 

@@ -2,6 +2,14 @@
 
 ## 2026-06-05
 
+### ROCm backend
+- **ROCm ComfyUI backend** — AMD-native PyTorch via ROCm 7.2.1 on Python 3.12 (`venv_rocm`), coexists with existing DirectML `venv`
+- **Dual-backend install** — `ai install comfyui -Backend rocm|directml`. Reads existing backend from config on reinstall, no re-prompt
+- **Launcher auto-selects venv** — `Manage-ComfyUI` reads `comfyui_backend` from `system_config.json`, activates correct venv, sets `--directml` only when needed
+- **Doctor ROCm check** — `ai doctor` shows ROCm availability when `venv_rocm` is present
+- **Default launch flags** — `--use-pytorch-cross-attention --disable-smart-memory --bf16-unet --output-directory AI_WORKSPACE\output`
+- **Python 3.12** — added to `2-deps.ps1` for the ROCm stack
+
 ### Startup reliability
 - **Silent start** — `ai start`, `ai stop`, `ai restart` are now quiet on success; errors dump the log tail and exit with code 1
 - **Post-launch verification** — all three `Manage-*` "start" actions verify the port is listening after the sleep wait; failure shows last 15 lines of the service log
