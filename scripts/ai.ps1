@@ -539,11 +539,7 @@ def _load_lib(*a): return False
         "$Root\AI_VAULT\models\diffusion\style_models",
         "$Root\AI_VAULT\models\diffusion\clip_vision",
         "$Root\AI_VAULT\models\diffusion\clip",
-        "$Root\AI_VAULT\models\embeddings",
-        "$Root\AI_VAULT\models\insightface",
-        "$Root\AI_VAULT\models\ultralytics",
-        "$Root\AI_VAULT\models\ultralytics\bbox",
-        "$Root\AI_VAULT\models\sams"
+        "$Root\AI_VAULT\models\embeddings"
     )
     foreach ($d in $vaultDirs) {
         if (!(Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
@@ -565,9 +561,6 @@ vault_config:
     clip_vision: $Root\AI_VAULT\models\diffusion\clip_vision
     clip: $Root\AI_VAULT\models\diffusion\clip
     embeddings: $Root\AI_VAULT\models\embeddings
-    insightface: $Root\AI_VAULT\models\insightface
-    ultralytics_bbox: $Root\AI_VAULT\models\ultralytics\bbox
-    sams: $Root\AI_VAULT\models\sams
 "@
     $yaml | Out-File "$ComfyPath\extra_model_paths.yaml" -Encoding utf8
 
