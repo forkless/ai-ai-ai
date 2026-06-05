@@ -174,6 +174,9 @@ try {
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
         # Install remaining ComfyUI deps
         pip install -r requirements.txt 2>&1 | Out-Null
+        # Reinstall ROCm torchaudio after requirements.txt to avoid PyPI override
+        pip install --no-cache-dir --force-reinstall --no-deps `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
         Write-Host "  ROCm stack installed (torch 2.9.1 + ROCm 7.2.1)"
         deactivate
     } else {
