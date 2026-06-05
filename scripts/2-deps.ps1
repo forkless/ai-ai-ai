@@ -1,5 +1,5 @@
 <#
-2-deps.ps1 — Ai, ai, ai! Bootstrap v1.1
+2-deps.ps1 — Ai, ai, ai! Bootstrap v1.1.2
 Install system dependencies. Requires admin rights.
 #>
 
@@ -53,7 +53,7 @@ if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "========================="
-Write-Host " Ai, ai, ai! Bootstrap v1.1"
+Write-Host " Ai, ai, ai! Bootstrap v1.1.2"
 Write-Host "========================="
 Write-Host "Install Summary"
 foreach ($r in $results) { Write-Host "  $($r.Name): $($r.Status)" }
