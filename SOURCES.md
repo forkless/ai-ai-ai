@@ -49,10 +49,4 @@ All hosted at `https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/`
 |---------|--------|-------|
 | **torchaudio (patched)** | `https://download.pytorch.org/whl/cpu` | CPU-only torchaudio replaces PyPI version to avoid CUDA DLL crashes on AMD |
 
-## Not Included
 
-The following are installed manually by the user when needed and not handled
-by the bootstrap scripts:
-
-- `onnxruntime` — required by reactor-node, install via `pip install onnxruntime`
-- `insightface` — cp312 wheel, install via `pip install insightface-...cp312-win_amd64.whl`
