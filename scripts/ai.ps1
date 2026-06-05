@@ -112,16 +112,11 @@ function Manage-ComfyUI {
 
     switch ($Action) {
         "start" {
-            if ($comfyRunning) {
-                Write-Host "ComfyUI: Running on port $comfyPort"
-                Write-Host "URL: http://$($comfyHost):$comfyPort"
-                return
-            }
+            if ($comfyRunning) { return }
             if (!(Test-Path $launcher)) {
                 Write-Host "ComfyUI not installed. Run: ai install comfyui"
                 exit 1
             }
-            Write-Host "Starting ComfyUI..."
             # Regenerate launcher with current listen address
             $gpuFlag = if ((Get-GPUType) -eq "amd") { " --directml" } else { "" }
             $comfyPath = "${Root}\AI_CORE\Apps\ComfyUI"
@@ -134,10 +129,20 @@ Set-Location "$comfyPath"
 python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
+            # Rotate log so error output reflects only this session
             Rotate-LogFile "$logDir\comfyui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             Start-Sleep -Seconds 3
-            Write-Host "ComfyUI started. URL: http://$($comfyHost):$comfyPort"
+            # Verify service actually started
+            $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${comfyPort} "
+            if (-not $running) {
+                Write-Host "ERROR: ComfyUI failed to start"
+                if (Test-Path "$logDir\comfyui.log") {
+                    Write-Host "Last lines of comfyui.log:"
+                    Get-Content "$logDir\comfyui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
+                }
+                exit 1
+            }
         }
         "stop" {
             if (-not $comfyRunning) {
@@ -182,12 +187,7 @@ function Manage-Ollama {
 
     switch ($Action) {
         "start" {
-            if ($ollamaRunning) {
-                Write-Host "Ollama: Running on port $ollamaPort"
-                Write-Host "API: http://$($ollamaHost):$ollamaPort"
-                return
-            }
-            Write-Host "Starting Ollama in background..."
+            if ($ollamaRunning) { return }
             # Generate launcher with listen address
             $ollamaLauncher = "${Root}\AI_TOOLS\launch_ollama.ps1"
             $logDir = "${Root}\AI_CACHE\logs"
@@ -201,7 +201,16 @@ ollama serve *>> "`$logFile"
             Rotate-LogFile "$logDir\ollama.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
             Start-Sleep -Seconds 2
-            Write-Host "Ollama started. API: http://$($ollamaHost):$ollamaPort"
+            # Verify service actually started
+            $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} "
+            if (-not $running) {
+                Write-Host "ERROR: Ollama failed to start"
+                if (Test-Path "$logDir\ollama.log") {
+                    Write-Host "Last lines of ollama.log:"
+                    Get-Content "$logDir\ollama.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
+                }
+                exit 1
+            }
         }
         "stop" {
             if (-not $ollamaRunning) {
@@ -247,15 +256,11 @@ function Manage-WebUI {
 
     switch ($Action) {
         "start" {
-            if ($webuiRunning) {
-                Write-Host "Open Web UI: Running on port $webuiPort"
-                return
-            }
+            if ($webuiRunning) { return }
             if (!(Test-Path $webuiPath)) {
                 Write-Host "Open Web UI not installed. Run: ai install openwebui"
                 exit 1
             }
-            Write-Host "Starting Open Web UI..."
             # Regenerate launcher with current listen address
             $logDir = "${Root}\AI_CACHE\logs"
             if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
@@ -277,8 +282,17 @@ open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
             $launcher | Out-File $webuiLauncher -Encoding utf8
             Rotate-LogFile "$logDir\openwebui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
-            Start-Sleep -Seconds 3
-            Write-Host "Open Web UI started. URL: http://$($webuiHost):$webuiPort"
+            Start-Sleep -Seconds 5
+            # Verify service actually started
+            $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${webuiPort} "
+            if (-not $running) {
+                Write-Host "ERROR: Open Web UI failed to start"
+                if (Test-Path "$logDir\openwebui.log") {
+                    Write-Host "Last lines of openwebui.log:"
+                    Get-Content "$logDir\openwebui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
+                }
+                exit 1
+            }
         }
         "stop" {
             if (-not $webuiRunning) {
@@ -321,16 +335,15 @@ function Rotate-LogFile {
     param([string]$Path)
     if (!(Test-Path $Path)) { return }
     $lastWrite = (Get-Item $Path).LastWriteTime
-    if ($lastWrite.Date -lt (Get-Date).Date) {
-        $archiveDir = "$(Split-Path $Path -Parent)\archive"
-        $baseName = (Get-Item $Path).BaseName
-        $archiveName = "$archiveDir\$($baseName)_$($lastWrite.ToString('yyyyMMdd')).zip"
-        if (!(Test-Path $archiveDir)) { New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null }
-        Compress-Archive -Path $Path -DestinationPath $archiveName -Force
-        Remove-Item $Path -Force
-        $pattern = "$archiveDir\$($baseName)_*.zip"
-        Get-ChildItem $pattern -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } | Remove-Item -Force
-    }
+    $archiveDir = "$(Split-Path $Path -Parent)\archive"
+    $baseName = (Get-Item $Path).BaseName
+    $archiveName = "$archiveDir\$($baseName)_$($lastWrite.ToString('yyyyMMdd')).zip"
+    if (!(Test-Path $archiveDir)) { New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null }
+    Compress-Archive -Path $Path -DestinationPath $archiveName -Force
+    Remove-Item $Path -Force
+    # Clean archives older than 7 days
+    $pattern = "$archiveDir\$($baseName)_*.zip"
+    Get-ChildItem $pattern -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } | Remove-Item -Force
 }
 <#
 .SYNOPSIS Tails the log file for a given service. Uses Get-Content -Wait for live output.
@@ -498,14 +511,16 @@ vault_config:
 
     # Launcher with GPU flag and listen address
     $gpuFlag = if ($gpu -eq "amd") { " --directml" } else { "" }
-    $listenAddr = "0.0.0.0"
+    $portCfg = Get-PortConfig
+    $listenAddr = $portCfg.listen
+    $comfyPort = $portCfg.comfyui
     $logDir = "${Root}\AI_CACHE\logs"
     if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
     $launcher = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 .\venv\Scripts\Activate.ps1
-python main.py --listen $listenAddr --port 8188 --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
+python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
     # Ensure target directory exists
     $toolsDir = "${Root}\AI_TOOLS"
