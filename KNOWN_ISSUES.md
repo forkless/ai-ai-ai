@@ -17,3 +17,11 @@ older versions.
 
 **Trigger:** When ComfyUI releases a version where the V4 Manager is standard and
 the git clone approach breaks or causes warnings.
+
+### How to check if you're affected
+
+1. Load a workflow saved in API format
+2. See error: `e.inputs?.map is not a function`
+3. Error points to `components-manager.js`
+
+→ You're on Manager V3 with a newer ComfyUI core.
