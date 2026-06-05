@@ -2,7 +2,12 @@
 3-comfyui.ps1 — Ai, ai, ai! Bootstrap v1.1.2
 Install ComfyUI and connect to AI_VAULT.
 Requires: 1-init.ps1 and 2-deps.ps1 already run.
+Parameter: -Backend directml|rocm (AMD only, defaults to prompt)
 #>
+param(
+    [ValidateSet("directml", "rocm")]
+    [string]$Backend = ""
+)
 
 # ── Root Path Detection ──
 # Tries system_config.json first, then falls back to user prompt.
@@ -80,56 +85,104 @@ if (!(Test-Path $ComfyPath)) {
 
 Set-Location "$ComfyPath"
 
-# Venv — create if missing or missing DirectML module (AMD)
-$recreateVenv = $false
-if ((Test-Path ".\venv") -and $gpuType -eq "amd") {
-    # Check if DirectML backend is installed
-    $dmlCheck = & ".\venv\Scripts\python.exe" -c "import torch_directml; print('ok')" 2>$null
-    if ($dmlCheck -ne "ok") {
-        Write-Host "AMD GPU — DirectML backend not found, recreating venv"
-        $recreateVenv = $true
-    }
-}
-if ($recreateVenv -or !(Test-Path ".\venv")) {
-    if ($recreateVenv) { Remove-Item -Recurse -Force ".\venv" }
-    Write-Host "Creating Python 3.11 environment..."
-    $venvResult = py -3.11 -m venv venv 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Failed to create venv — $venvResult"
-        Write-Host "Make sure Python 3.11 is installed and terminal was restarted."
-        exit 1
-    }
-} else {
-    Write-Host "Python environment exists — updating..."
-}
-
 # GPU detection
 $gpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -match "NVIDIA" }
 $gpuType = if ($gpu) { "nvidia" } else { "amd" }
 Write-Host "Detected GPU: $gpuType"
 
-# ── pip Install / DirectML Workaround ──
-# NVIDIA: installs standard requirements.txt (torch with CUDA).
-# AMD: installs torch-directml, then removes CUDA torchaudio DLLs
-# which cause hard crashes on RDNA cards. CPU-only torchaudio is
-# reinstalled from the PyPI cpu index. The stubbed extension module
-# prevents Python from loading the CUDA DLL at import time.
-# ──────────────────────────────────────
+# Backend selection for AMD
+if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
+    Write-Host "Choose ComfyUI backend for AMD GPU:"
+    Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
+    Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
+    $choice = Read-Host "Select backend (default: directml)"
+    $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
+}
+if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
 
+$venvName = if ($Backend -eq "rocm") { "venv_rocm" } else { "venv" }
+$pythonVer = if ($Backend -eq "rocm") { "3.12" } else { "3.11" }
+
+# Venv creation
+if ($gpuType -eq "nvidia") {
+    # NVIDIA — single venv, no backend choice
+    if (!(Test-Path ".\venv")) {
+        Write-Host "Creating Python 3.11 environment..."
+        $venvResult = py -3.11 -m venv venv 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: Failed to create venv — $venvResult"
+            Write-Host "Make sure Python 3.11 is installed and terminal was restarted."
+            exit 1
+        }
+    } else {
+        Write-Host "Python environment exists — updating..."
+    }
+} else {
+    # AMD — backend-specific venv
+    if ($Backend -eq "rocm" -and !(Test-Path ".\venv_rocm")) {
+        Write-Host "Creating Python $pythonVer environment ($venvName)..."
+        $venvResult = py -3.12 -m venv venv_rocm 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: Failed to create venv — $venvResult"
+            Write-Host "Make sure Python 3.12 is installed (run 2-deps.ps1) and terminal was restarted."
+            exit 1
+        }
+    } elseif ($Backend -eq "directml") {
+        $recreateVenv = $false
+        if (Test-Path ".\venv") {
+            $dmlCheck = & ".\venv\Scripts\python.exe" -c "import torch_directml; print('ok')" 2>$null
+            if ($dmlCheck -ne "ok") {
+                Write-Host "AMD GPU — DirectML backend not found, recreating venv"
+                $recreateVenv = $true
+            }
+        }
+        if ($recreateVenv -or !(Test-Path ".\venv")) {
+            if ($recreateVenv) { Remove-Item -Recurse -Force ".\venv" }
+            Write-Host "Creating Python $pythonVer environment..."
+            $venvResult = py -3.11 -m venv venv 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "ERROR: Failed to create venv — $venvResult"
+                Write-Host "Make sure Python 3.11 is installed and terminal was restarted."
+                exit 1
+            }
+        } else {
+            Write-Host "Python environment exists — updating..."
+        }
+    }
+}
+
+# ── pip Install ──
 Write-Host "Installing requirements..."
-try {
-    .\venv\Scripts\Activate.ps1
 
-    if ($gpuType -eq "amd") {
-        # Install DirectML stack (replaces CUDA torch with CPU torch)
+try {
+    if ($gpuType -eq "nvidia") {
+        .\venv\Scripts\Activate.ps1
+        pip install -r requirements.txt 2>&1 | Out-Null
+        deactivate
+    } elseif ($Backend -eq "rocm") {
+        .\venv_rocm\Scripts\Activate.ps1
+        Write-Host "AMD GPU — installing ROCm stack (PyTorch $pythonVer)..."
+        # ROCm SDK core + PyTorch from AMD repo
+        pip install --no-cache-dir `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_core-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz 2>&1 | Out-Null
+        pip install --no-cache-dir `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
+        # Install remaining ComfyUI deps
+        pip install -r requirements.txt 2>&1 | Out-Null
+        Write-Host "  ROCm stack installed (torch 2.9.1 + ROCm 7.2.1)"
+        deactivate
+    } else {
+        .\venv\Scripts\Activate.ps1
         Write-Host "AMD GPU — installing DirectML stack..."
         pip install torch-directml 2>&1 | Out-Null
-        # Install full requirements (includes CUDA torchaudio — will be fixed next)
         pip install -r requirements.txt 2>&1 | Out-Null
-        # Reinstall torchaudio from CPU index, then nuke stale CUDA DLLs
         Write-Host "  Replacing CUDA torchaudio with CPU version..."
         pip install torchaudio --force-reinstall --no-deps --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 2>&1 | Out-Null
-        # Stub out the extension module (CUDA DLLs cause hard crashes on AMD)
         $extDir = "${ComfyPath}\venv\Lib\site-packages\torchaudio\_extension"
         if (Test-Path $extDir) { Remove-Item -Recurse -Force $extDir }
         New-Item -Path "${ComfyPath}\venv\Lib\site-packages\torchaudio\_extension" -ItemType Directory -Force | Out-Null
@@ -140,12 +193,24 @@ def _init_extension(): pass
 def _load_lib(*a): return False
 "@ | Set-Content -Path "${ComfyPath}\venv\Lib\site-packages\torchaudio\_extension\__init__.py"
         Write-Host "  DirectML and CPU torchaudio ready"
-    } else {
-        pip install -r requirements.txt 2>&1 | Out-Null
+        deactivate
     }
 } catch {
     Write-Host "ERROR: pip install failed — $_"
     exit 1
+}
+
+# Write backend to system_config.json for Manage-ComfyUI to read
+$configPath = "${Root}\AI_CONFIG\system_config.json"
+$cfg = $null
+if (Test-Path $configPath) {
+    $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+}
+if (-not $cfg) { $cfg = New-Object PSObject }
+if ($gpuType -eq "amd") {
+    $cfg | Add-Member -MemberType NoteProperty -Name "comfyui_backend" -Value $Backend -Force
+    $cfg | ConvertTo-Json -Depth 10 | Out-File $configPath -Encoding utf8
+    Write-Host "system_config.json updated: comfyui_backend=$Backend"
 }
 
 # Extra model paths
@@ -203,7 +268,8 @@ if ($firstLine -match "^[a-zA-Z_]+:$" -and $yamlLines.Count -gt 1 -and $yamlLine
 
 # Launcher with GPU flag and port config
 Write-Host "Creating launcher..."
-$gpuFlag = if ($gpuType -eq "amd") { " --directml" } else { "" }
+$activatePath = if ($gpuType -eq "amd" -and $Backend -eq "rocm") { ".\venv_rocm\Scripts\Activate.ps1" } else { ".\venv\Scripts\Activate.ps1" }
+$gpuFlag = if ($gpuType -eq "amd" -and $Backend -ne "rocm") { " --directml" } else { "" }
 $portFile = "${Root}\AI_CONFIG\ports.json"
 $comfyPort = 8188
 $listenAddr = "0.0.0.0"
@@ -217,7 +283,7 @@ if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | 
 $launcher = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
-.\venv\Scripts\Activate.ps1
+$activatePath
 python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
 $toolsDir = "${Root}\AI_TOOLS"
@@ -231,7 +297,8 @@ Write-Host " Ai, ai, ai! Bootstrap v1.1.2"
 Write-Host "========================="
 Write-Host "ComfyUI installed"
 Write-Host "  Location: $ComfyPath"
-Write-Host "  Venv: ${ComfyPath}\venv (Python 3.11)"
+$displayVenv = if ($gpuType -eq "amd" -and $Backend -eq "rocm") { "${ComfyPath}\venv_rocm (Python 3.12, ROCm)" } elseif ($gpuType -eq "amd") { "${ComfyPath}\venv (Python 3.11, DirectML)" } else { "${ComfyPath}\venv (Python 3.11, CUDA)" }
+Write-Host "  Venv: $displayVenv"
 Write-Host "  Model paths: extra_model_paths.yaml"
 Write-Host "  Launcher: ${Root}\AI_TOOLS\launch_comfyui.ps1"
 Write-Host "  Temp dir: ${Root}\AI_CACHE\comfyui_temp"

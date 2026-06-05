@@ -40,6 +40,12 @@ $results += @{Name="Python 3.11"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"
 if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
+Write-Host "--- Python 3.12 ---"
+$result = winget install Python.Python.3.12 --accept-source-agreements 2>&1
+$results += @{Name="Python 3.12"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
+if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
+Write-Host ""
+
 Write-Host "--- Ollama ---"
 $result = winget install Ollama.Ollama --accept-source-agreements 2>&1
 $results += @{Name="Ollama"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
@@ -61,6 +67,7 @@ Write-Host "========================"
 Write-Host ""
 Write-Host "IMPORTANT: Close ALL PowerShell windows, open a new one."
 Write-Host "Then verify with: py -0, git --version, ollama --version"
+Write-Host "Python 3.12 needed for ROCm ComfyUI backend (optional)"
 Write-Host ""
 Write-Host ""
 

@@ -44,6 +44,12 @@ if (!(Test-Path $Root)) {
 $Command = $args[0]
 $SubCommand = $args[1]
 
+# Extract -Backend option from remaining args
+$BackendArg = ""
+for ($i = 2; $i -lt $args.Count; $i++) {
+    if ($args[$i] -eq "-Backend" -and $i + 1 -lt $args.Count) { $BackendArg = $args[$i + 1] }
+}
+
 <#
 .SYNOPSIS Displays the full command reference in a bordered box.
 No side effects. Uses $cmd format string for column alignment.
@@ -110,6 +116,14 @@ function Manage-ComfyUI {
     $comfyHost = $ports.listen
     $comfyRunning = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${comfyPort} "
 
+    # Read backend from system_config.json for launcher generation
+    $configPath = "${Root}\AI_CONFIG\system_config.json"
+    $comfyuiBackend = "directml"
+    if (Test-Path $configPath) {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+        if ($cfg.comfyui_backend) { $comfyuiBackend = $cfg.comfyui_backend }
+    }
+
     switch ($Action) {
         "start" {
             if ($comfyRunning) { return }
@@ -118,14 +132,16 @@ function Manage-ComfyUI {
                 exit 1
             }
             # Regenerate launcher with current listen address
-            $gpuFlag = if ((Get-GPUType) -eq "amd") { " --directml" } else { "" }
+            $gpu = Get-GPUType
+            $activatePath = if ($gpu -eq "amd" -and $comfyuiBackend -eq "rocm") { ".\venv_rocm\Scripts\Activate.ps1" } else { ".\venv\Scripts\Activate.ps1" }
+            $gpuFlag = if ($gpu -eq "amd" -and $comfyuiBackend -ne "rocm") { " --directml" } else { "" }
             $comfyPath = "${Root}\AI_CORE\Apps\ComfyUI"
             $logDir = "${Root}\AI_CACHE\logs"
             if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
             $launcherContent = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$comfyPath"
-.\venv\Scripts\Activate.ps1
+$activatePath
 python main.py --listen $comfyHost --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
@@ -387,6 +403,7 @@ function Get-GPUType {
 }
 
 function Install-ComfyUI {
+    param([string]$Backend = "")
     Manage-ComfyUI "stop"
     Push-Location
     $ComfyPath = "$Root\AI_CORE\Apps\ComfyUI"
@@ -405,26 +422,76 @@ function Install-ComfyUI {
 
     Set-Location "$ComfyPath"
 
-    # Recreate venv if DirectML module is missing (AMD)
-    $recreateVenv = $false
-    if ((Test-Path ".\venv") -and $gpu -eq "amd") {
-        $dmlCheck = & ".\venv\Scripts\python.exe" -c "import torch_directml; print('ok')" 2>$null
-        if ($dmlCheck -ne "ok") {
-            Write-Host "AMD GPU — DirectML backend not found, recreating venv"
-            $recreateVenv = $true
+    # Backend selection for AMD
+    if ($gpu -eq "amd") {
+        if ([string]::IsNullOrEmpty($Backend)) {
+            Write-Host "Choose ComfyUI backend for AMD GPU:"
+            Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
+            Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
+            $choice = Read-Host "Select backend (default: directml)"
+            $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
+        }
+        if ([string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
+    }
+
+    $venvName = if ($Backend -eq "rocm") { "venv_rocm" } else { "venv" }
+    $pythonVer = if ($Backend -eq "rocm") { "3.12" } else { "3.11" }
+
+    # Venv creation
+    if ($gpu -eq "nvidia") {
+        if (!(Test-Path ".\venv")) {
+            Write-Host "Creating Python 3.11 environment..."
+            py -3.11 -m venv venv
+        } else {
+            Write-Host "Python environment exists — updating..."
+        }
+    } elseif ($Backend -eq "rocm") {
+        if (!(Test-Path ".\venv_rocm")) {
+            Write-Host "Creating Python $pythonVer environment ($venvName)..."
+            py -3.12 -m venv venv_rocm
+        } else {
+            Write-Host "ROCm environment exists — updating..."
+        }
+    } else {
+        $recreateVenv = $false
+        if ((Test-Path ".\venv") -and $gpu -eq "amd") {
+            $dmlCheck = & ".\venv\Scripts\python.exe" -c "import torch_directml; print('ok')" 2>$null
+            if ($dmlCheck -ne "ok") {
+                Write-Host "AMD GPU — DirectML backend not found, recreating venv"
+                $recreateVenv = $true
+            }
+        }
+        if ($recreateVenv -or !(Test-Path ".\venv")) {
+            if ($recreateVenv) { Remove-Item -Recurse -Force ".\venv" }
+            Write-Host "Creating Python $pythonVer environment..."
+            py -3.11 -m venv venv
+        } else {
+            Write-Host "Python environment exists — updating..."
         }
     }
-    if ($recreateVenv -or !(Test-Path ".\venv")) {
-        if ($recreateVenv) { Remove-Item -Recurse -Force ".\venv" }
-        Write-Host "Creating Python 3.11 environment..."
-        py -3.11 -m venv venv
+
+    # pip install
+    if ($gpu -eq "nvidia") {
+        .\venv\Scripts\Activate.ps1
+        pip install -r requirements.txt 2>&1 | Out-Null
+        deactivate
+    } elseif ($Backend -eq "rocm") {
+        .\venv_rocm\Scripts\Activate.ps1
+        Write-Host "AMD GPU — installing ROCm stack..."
+        pip install --no-cache-dir `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_core-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz 2>&1 | Out-Null
+        pip install --no-cache-dir `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl `
+            https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
+        pip install -r requirements.txt 2>&1 | Out-Null
+        Write-Host "  ROCm stack installed (torch 2.9.1 + ROCm 7.2.1)"
+        deactivate
     } else {
-        Write-Host "Python environment exists — updating..."
-    }
-
-    .\venv\Scripts\Activate.ps1
-
-    if ($gpu -eq "amd") {
+        .\venv\Scripts\Activate.ps1
         Write-Host "AMD GPU — installing DirectML stack..."
         pip install torch-directml 2>&1 | Out-Null
         pip install -r requirements.txt 2>&1 | Out-Null
@@ -440,22 +507,23 @@ def _init_extension(): pass
 def _load_lib(*a): return False
 "@ | Set-Content -Path "$ComfyPath\venv\Lib\site-packages\torchaudio\_extension\__init__.py"
         Write-Host "  DirectML and CPU torchaudio ready"
-    } else {
-        pip install -r requirements.txt 2>&1 | Out-Null
+        deactivate
     }
 
-    deactivate
-
-    # Update config with detected GPU
+    # Update config with detected GPU and backend
     $configPath = "$Root\AI_CONFIG\system_config.json"
+    $config = $null
     if (Test-Path $configPath) {
-        $config = Get-Content $configPath | ConvertFrom-Json
-        if ($config.gpu -eq "unknown" -and $gpu -ne "unknown") {
-            $config.gpu = $gpu
-            $config | ConvertTo-Json -Depth 10 | Out-File $configPath
-            Write-Host "system_config.json updated: gpu=$gpu"
-        }
+        $config = Get-Content $configPath -Raw | ConvertFrom-Json
     }
+    if (-not $config) { $config = New-Object PSObject }
+    $config | Add-Member -MemberType NoteProperty -Name "gpu" -Value $gpu -Force
+    if ($gpu -eq "amd") {
+        $config | Add-Member -MemberType NoteProperty -Name "comfyui_backend" -Value $Backend -Force
+    }
+    $config | ConvertTo-Json -Depth 10 | Out-File $configPath
+    Write-Host "system_config.json updated: gpu=$gpu"
+    if ($gpu -eq "amd") { Write-Host "  comfyui_backend=$Backend" }
 
     # Ensure vault directories exist
     $vaultDirs = @(
@@ -510,7 +578,8 @@ vault_config:
     }
 
     # Launcher with GPU flag and listen address
-    $gpuFlag = if ($gpu -eq "amd") { " --directml" } else { "" }
+    $activatePath = if ($gpu -eq "amd" -and $Backend -eq "rocm") { ".\venv_rocm\Scripts\Activate.ps1" } else { ".\venv\Scripts\Activate.ps1" }
+    $gpuFlag = if ($gpu -eq "amd" -and $Backend -ne "rocm") { " --directml" } else { "" }
     $portCfg = Get-PortConfig
     $listenAddr = $portCfg.listen
     $comfyPort = $portCfg.comfyui
@@ -519,7 +588,7 @@ vault_config:
     $launcher = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
-.\venv\Scripts\Activate.ps1
+$activatePath
 python main.py --listen $listenAddr --port $comfyPort --temp-directory "${Root}\AI_CACHE\comfyui_temp"$gpuFlag *>> "`$logFile"
 "@
     # Ensure target directory exists
@@ -1179,7 +1248,7 @@ switch ($Command) {
     "install" {
         switch ($SubCommand) {
             "all"             { Install-ComfyUI; Install-ComfyUI-Manager; Install-Ollama; Install-OpenWebUI }
-            "comfyui"         { Install-ComfyUI }
+            "comfyui"         { Install-ComfyUI -Backend $BackendArg }
             "comfyui-manager" { Install-ComfyUI-Manager }
             "ollama"          { Install-Ollama }
             "openwebui"       { Install-OpenWebUI }
