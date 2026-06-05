@@ -142,6 +142,7 @@ function Manage-ComfyUI {
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$comfyPath"
 $activatePath
+`$env:MIOPEN_FIND_MODE = "2"
 python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --reserve-vram 1.2 --force-fp32$gpuFlag *>> "`$logFile"
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
@@ -589,6 +590,7 @@ vault_config:
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 $activatePath
+`$env:MIOPEN_FIND_MODE = "2"
 python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --reserve-vram 1.2 --force-fp32$gpuFlag *>> "`$logFile"
 "@
     # Ensure target directory exists
