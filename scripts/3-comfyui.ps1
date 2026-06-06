@@ -119,11 +119,9 @@ if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
         $Backend = "directml"
         Write-Host "RX 5000 series detected — DirectML is the only compatible backend (ROCm requires RDNA2+)"
     } else {
-        Write-Host "Choose ComfyUI backend for AMD GPU ($amdGen detected):"
-        Write-Host "  1) directml — DirectML (compatible, all RDNA GPUs, Python 3.11)"
-        Write-Host "  2) rocm    — ROCm (native, faster, RDNA2+, Python 3.12, needs AMD driver 26.2.2+)"
-        $choice = Read-Host "Select backend (default: directml)"
-        $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
+        # Auto-select ROCm on RDNA2+ hardware
+        $Backend = "rocm"
+        Write-Host "Auto-selected ROCm backend for ${amdGen} GPU (pass -Backend directml to override)"
     }
 }
 if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
