@@ -4,7 +4,7 @@
 > You will encounter rough edges, incomplete error handling, and sharp corners.
 > Proceed at your own risk.
 
-> **⚠️ AMD RX 9070 Users:** Driver 26.3.1 is recommended for stability across
+> **⚠️ AMD RX 7000 Series and Newer Users:** Driver 26.3.1 is recommended for stability across
 > all workloads — ROCm, desktop productivity, and gaming. Some users report
 > instability with 26.5.x and newer. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
 > for details.

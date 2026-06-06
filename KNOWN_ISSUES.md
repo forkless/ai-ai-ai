@@ -28,12 +28,12 @@ the git clone approach breaks or causes warnings.
 
 ---
 
-## AMD Driver Stability: 26.5.x / 26.6.1 vs 26.3.1 (RX 9070 series)
+## AMD Driver Stability: 26.5.x / 26.6.1 vs 26.3.1 (RX 7000 series and newer)
 
 **Status:** Upstream issue — not fixable by scripts
 
 **Summary:** Adrenalin 26.5.x and 26.6.1 drivers can exhibit system-wide instability
-on some RX 9070 series configurations. 26.3.1 remains the recommended stable version
+on some RX 7000 and 9000 series configurations. 26.3.1 remains the recommended stable version
 for AI workloads, gaming, and daily desktop use. Some users report no issues on newer
 drivers — YMMV.
 
