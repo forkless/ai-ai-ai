@@ -90,8 +90,20 @@ $gpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -matc
 $gpuType = if ($gpu) { "nvidia" } else { "amd" }
 Write-Host "Detected GPU: $gpuType"
 
+# GPU generation detection for AMD
+function Get-AMDGen {
+    if ($gpu.Name -match "RX (\d)\d{3}") {
+        $series = [int]$Matches[1]
+        if ($series -ge 7) { return "rdna3plus" }
+        if ($series -eq 6) { return "rdna2" }
+        if ($series -eq 5) { return "rdna1" }
+    }
+    return $null
+}
+
 # Backend selection for AMD
 if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
+    $amdGen = Get-AMDGen
     # Read existing backend from config to avoid re-prompting on upgrades
     $existingCfg = $null
     if (Test-Path "${Root}\AI_CONFIG\system_config.json") {
@@ -103,10 +115,13 @@ if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
     } elseif ($existingCfg -and $existingCfg.comfyui_backend -eq "directml") {
         $Backend = "directml"
         Write-Host "Using existing DirectML backend (pass -Backend rocm to switch)"
+    } elseif ($amdGen -eq "rdna1") {
+        $Backend = "directml"
+        Write-Host "RX 5000 series detected — DirectML is the only compatible backend (ROCm requires RDNA2+)"
     } else {
-        Write-Host "Choose ComfyUI backend for AMD GPU:"
-        Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
-        Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
+        Write-Host "Choose ComfyUI backend for AMD GPU ($amdGen detected):"
+        Write-Host "  1) directml — DirectML (compatible, all RDNA GPUs, Python 3.11)"
+        Write-Host "  2) rocm    — ROCm (native, faster, RDNA2+, Python 3.12, needs AMD driver 26.2.2+)"
         $choice = Read-Host "Select backend (default: directml)"
         $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
     }
@@ -114,6 +129,10 @@ if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
 if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
 if ($gpuType -eq "amd" -and $Backend -ne "directml" -and $Backend -ne "rocm") {
     Write-Host "WARNING: Unknown backend '$Backend', defaulting to directml"
+    $Backend = "directml"
+}
+if ($gpuType -eq "amd" -and $Backend -eq "rocm" -and (Get-AMDGen) -eq "rdna1") {
+    Write-Host "WARNING: ROCm is not available on RX 5000 series (RDNA1). Falling back to DirectML."
     $Backend = "directml"
 }
 

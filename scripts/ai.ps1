@@ -425,6 +425,23 @@ function Get-GPUType {
     return "unknown"
 }
 
+<#
+.SYNOPSIS Detects AMD GPU generation from the device name.
+Returns "rdna1" (RX 5000 series), "rdna2" (RX 6000), "rdna3plus" (RX 7000+),
+or $null if not an AMD GPU.
+#>
+function Get-AMDGen {
+    $amdGpu = Get-WmiObject -Class Win32_VideoController | Where-Object { $_.Name -match "AMD|Radeon" }
+    if (-not $amdGpu) { return $null }
+    if ($amdGpu.Name -match "RX (\d)\d{3}") {
+        $series = [int]$Matches[1]
+        if ($series -ge 7) { return "rdna3plus" }
+        if ($series -eq 6) { return "rdna2" }
+        if ($series -eq 5) { return "rdna1" }
+    }
+    return $null
+}
+
 function Install-ComfyUI {
     param([string]$Backend = "")
     Manage-ComfyUI "stop"
@@ -447,6 +464,7 @@ function Install-ComfyUI {
 
     # Backend selection for AMD
     if ($gpu -eq "amd") {
+        $amdGen = Get-AMDGen
         if ([string]::IsNullOrEmpty($Backend)) {
             # Read existing backend from config to avoid re-prompting on upgrades
             $existingCfg = $null
@@ -459,13 +477,21 @@ function Install-ComfyUI {
             } elseif ($existingCfg -and $existingCfg.comfyui_backend -eq "directml") {
                 $Backend = "directml"
                 Write-Host "Using existing DirectML backend (pass -Backend rocm to switch)"
+            } elseif ($amdGen -eq "rdna1") {
+                $Backend = "directml"
+                Write-Host "RX 5000 series detected — DirectML is the only compatible backend (ROCm requires RDNA2+)"
             } else {
-                Write-Host "Choose ComfyUI backend for AMD GPU:"
-                Write-Host "  1) directml — DirectML (compatible, slower, Python 3.11)"
-                Write-Host "  2) rocm    — ROCm (native, faster, Python 3.12, needs AMD driver 26.2.2+)"
+                Write-Host "Choose ComfyUI backend for AMD GPU ($amdGen detected):"
+                Write-Host "  1) directml — DirectML (compatible, all RDNA GPUs, Python 3.11)"
+                Write-Host "  2) rocm    — ROCm (native, faster, RDNA2+, Python 3.12, needs AMD driver 26.2.2+)"
                 $choice = Read-Host "Select backend (default: directml)"
                 $Backend = if ($choice -eq "2") { "rocm" } else { "directml" }
             }
+        }
+        # Re-check: refuse ROCm on unsupported hardware
+        if ($Backend -eq "rocm" -and $amdGen -eq "rdna1") {
+            Write-Host "WARNING: ROCm is not available on RX 5000 series (RDNA1). Falling back to DirectML."
+            $Backend = "directml"
         }
         if ([string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }
         if ($Backend -ne "directml" -and $Backend -ne "rocm") {
