@@ -32,9 +32,10 @@ the git clone approach breaks or causes warnings.
 
 **Status:** Upstream issue — not fixable by scripts
 
-**Summary:** Adrenalin 26.5.x and 26.6.1 drivers exhibit system-wide instability on
-RX 9070 series cards. 26.3.1 remains the recommended stable version for AI workloads,
-gaming, and daily desktop use.
+**Summary:** Adrenalin 26.5.x and 26.6.1 drivers can exhibit system-wide instability
+on some RX 9070 series configurations. 26.3.1 remains the recommended stable version
+for AI workloads, gaming, and daily desktop use. Some users report no issues on newer
+drivers — YMMV.
 
 ### Stability Comparison
 
@@ -69,6 +70,8 @@ ROCm support.
 
 ### Recommendation
 
-**Stay on Adrenalin 26.3.1** for a stable system that handles AI/Compute, daily
-desktop, and gaming. The newer drivers work with ROCm but the display driver
-layer is too unstable for daily use.
+**Stay on Adrenalin 26.3.1** for the most stable experience across AI/Compute,
+daily desktop, and gaming. Newer drivers work with ROCm but some users report
+display driver instability. If you're on 26.5.x or 26.6.1 without issues, no
+need to change — but if you hit freezes or crashes, rolling back to 26.3.1
+is the first thing to try.
