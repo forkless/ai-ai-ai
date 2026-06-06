@@ -6,16 +6,15 @@
   │                    🔁 Restart PowerShell               │
   │                                                       │
   │  2. 2-deps.ps1    Install system dependencies         │
-  │                    (Git, Python, Ollama, FFmpeg)       │
-  │                    Detect GPU for matching deps        │
+  │                    Git, Python, Ollama, FFmpeg         │
   │                    Set environment variables           │
   │                    🔁 Restart PowerShell               │
   │                                                       │
-  │  3. 3-comfyui.ps1 Install ComfyUI                     │
+  │  3. 3-comfyui.ps1 Clone ComfyUI + setup Python env    │
   │                    Detect GPU → choose backend         │
   │                    (CUDA / DirectML / ROCm)            │
   │                    Install Python packages             │
-  │                    Write model paths                   │
+  │                    Write model paths & launcher        │
   │                                                       │
   │  4. ai CLI        ai setup path (one-time)            │
   │                    ai start all                       │
