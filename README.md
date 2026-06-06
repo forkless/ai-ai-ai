@@ -88,7 +88,7 @@ Get-ChildItem *.ps1 | Unblock-File
 | `scripts/3-comfyui.ps1` | Clones ComfyUI, creates Python 3.11 venv, installs dependencies (CUDA or DirectML), configures model paths |
 | `scripts/ai.ps1` | Daily driver CLI — service management, status, diagnostics, model listing, cache cleanup, environment setup |
 
-## GPU Support
+## GPU / CPU Support
 
 The scripts detect your GPU and install the correct backend automatically:
 
@@ -98,6 +98,8 @@ The scripts detect your GPU and install the correct backend automatically:
   with driver 26.2.2+. Select during install or pass `-Backend rocm`.
   ROCm supports RDNA2+ (RX 6000/7000/9000 series); RX 5000 series uses DirectML.
   See [COMPATIBILITY.md](COMPATIBILITY.md) for details.
+- **Intel CPU / no GPU** — CPU-only fallback (PyTorch without CUDA or DirectML).
+  Slow but functional.
 
 ## Port Configuration
 
