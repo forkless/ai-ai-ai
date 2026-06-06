@@ -1,49 +1,78 @@
-flowchart TB
-    subgraph Init["1-init.ps1"]
-        A1[Prompt for install path] --> A2[Check admin/developer mode]
-        A2 --> A3[Create 6-layer folder structure]
-        A3 --> A4[Create symlink bindings]
-        A4 --> A5[Write config files]
-        A5 --> A6[⚠️ RESTART PowerShell]
+graph TB
+    subgraph Phase1 [1-init.ps1]
+        A1[Create folder structure]
+        A2[Create symlink bindings]
+        A3[Write config files]
+        A1 --> A2 --> A3
     end
 
-    subgraph Deps["2-deps.ps1"]
-        B1[Check admin rights] --> B2[winget install Git]
-        B2 --> B3[winget install Python 3.10/3.11/3.12]
-        B3 --> B4[winget install Ollama]
-        B4 --> B5[winget install FFmpeg]
-        B5 --> B6[Set environment variables]
-        B6 --> B7[⚠️ RESTART PowerShell]
+    subgraph Phase2 [2-deps.ps1]
+        B1[Install system dependencies<br>Git, Python, Ollama, FFmpeg]
+        B2[Set environment variables]
+        B1 --> B2
     end
 
-    subgraph Comfy["3-apps.ps1"]
-        C1[Detect root path] --> C2[Check env vars]
-        C2 --> C3[Clone or update ComfyUI]
-        C3 --> C4[Detect GPU]
-        C4 --> C5{AMD?}
-        C5 -->|No| C6N[Create venv Python 3.11]
-        C5 -->|Yes - RDNA1| C6D[Auto: DirectML path]
-        C5 -->|Yes - RDNA2+| C6R[Auto: ROCm path]
-        C6N --> C7N[pip install requirements.txt]
-        C6D --> C7D[pip install torch-directml]
-        C7D --> C8D[pip install requirements.txt]
-        C8D --> C9D[Patch torchaudio for AMD]
-        C6R --> C7R[py -3.12 -m venv venv_rocm]
-        C7R --> C8R[pip install ROCm SDK]
-        C8R --> C9R[pip install ROCm torch/torchaudio/torchvision]
-        C9R --> C10R[pip install requirements.txt]
-        C10R --> C11R[Reinstall ROCm torchaudio]
-        C7N --> C12[Write backend to config]
-        C9D --> C12
-        C11R --> C12
-        C12 --> C13[Write extra_model_paths.yaml]
-        C13 --> C14[Generate launch script]
+    subgraph Phase3 [3-apps.ps1]
+        C1[Install ComfyUI + Open Web UI]
+        C2[Auto-detect GPU<br>→ select backend]
+        C3a[CUDA backend<br>NVIDIA]
+        C3b[ROCm backend<br>AMD RDNA2-4<br>Python 3.12]
+        C3c[DirectML backend<br>AMD RDNA1<br>Python 3.11]
+        C3d[CPU fallback<br>Intel / no GPU]
+        C4[Create venvs<br>Install Python packages]
+        C5[Write model paths + launchers]
+        
+        C1 --> C2
+        C2 --> C3a
+        C2 --> C3b
+        C2 --> C3c
+        C2 --> C3d
+        C3a --> C4
+        C3b --> C4
+        C3c --> C4
+        C3d --> C4
+        C4 --> C5
     end
 
-    subgraph Setup["Post-install"]
-        D1[ai setup path] --> D2[ai start all]
+    subgraph Phase4 [ai.ps1 - Daily Driver CLI]
+        D1[ai start/stop/restart all]
+        D2[ai status dashboard]
+        D3[ai doctor diagnostics]
+        D4[ai watch &lt;service&gt; logs]
+        D5[ai install updates]
+        D6[ai clean cache]
+        D7[ai setup ports / env]
     end
 
-    A6 --> Deps
-    B7 --> Comfy
-    Comfy --> Setup
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase3 --> Phase4
+
+    style Phase1 fill:transparent,stroke:#4a9eff,stroke-width:2px,color:#333
+    style Phase2 fill:transparent,stroke:#4a9eff,stroke-width:2px,color:#333
+    style Phase3 fill:transparent,stroke:#4a9eff,stroke-width:2px,color:#333
+    style Phase4 fill:transparent,stroke:#4a9eff,stroke-width:2px,color:#333
+    
+    style A1 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style A2 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style A3 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    
+    style B1 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style B2 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    
+    style C1 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style C2 fill:#fff3e0,stroke:#ffaa00,stroke-width:2px,color:#333
+    style C3a fill:transparent,stroke:#76b900,stroke-width:1.5px,color:#333
+    style C3b fill:transparent,stroke:#ed1c24,stroke-width:1.5px,color:#333
+    style C3c fill:transparent,stroke:#ed1c24,stroke-width:1.5px,color:#333
+    style C3d fill:transparent,stroke:#808080,stroke-width:1.5px,color:#333
+    style C4 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style C5 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    
+    style D1 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D2 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D3 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D4 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D5 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D6 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
+    style D7 fill:transparent,stroke:#4a9eff,stroke-width:1.5px,color:#333
