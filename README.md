@@ -4,8 +4,9 @@
 > You will encounter rough edges, incomplete error handling, and sharp corners.
 > Proceed at your own risk.
 
-> **⚠️ AMD RX 9070 Users:** Driver 26.3.1 is recommended for stability with
-> ROCm workloads. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for details.
+> **⚠️ AMD RX 9070 Users:** Driver 26.3.1 is recommended for stability across
+> all workloads — ROCm, desktop productivity, and gaming. See
+> [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for details.
 
 Provision a structured local AI workstation on Windows in three scripts. Models,
 runtimes, config, workspace, tools, and caches each get their own layer — no
