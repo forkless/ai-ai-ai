@@ -17,6 +17,13 @@
 - **Log rotation per start** — `Rotate-LogFile` now archives the log file on every `ai start`, not just cross-day. Each session gets a clean log for accurate error diagnosis
 - **Open Web UI wait increased** — sleep bumped from 3 to 5 seconds to allow Alembic migrations
 
+### Compatibility & docs
+- **COMPATIBILITY.md** — hardware compatibility matrix (ROCm vs DirectML by RDNA generation)
+- **KNOWN_ISSUES.md** — driver stability notes and ComfyUI-Manager V4 migration tracking
+- **SOURCES.md** — full software inventory with download sources
+- **CPU-only fallback** — documented for systems without a supported GPU
+- **Frequent update tip** — recommendation to run `ai install comfyui` periodically given ComfyUI's rapid release cycle
+
 ### Bugs
 - **Install-ComfyUI launcher port** — was hardcoded to `8188` regardless of `ports.json` config; now reads from `Get-PortConfig`
 - **Install-ComfyUI launcher listen address** — was hardcoded to `0.0.0.0`; now reads from `Get-PortConfig`
