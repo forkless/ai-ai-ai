@@ -346,32 +346,31 @@ Write-Host "Daily launch: ${Root}\AI_TOOLS\launch_comfyui.ps1"
 Write-Host "Re-run 3-apps.ps1 to update ComfyUI and dependencies (safe, doesn't destroy venv)"
 Write-Host ""
 
-# ── Optional: Open Web UI ──
-$installWebui = Read-Host "Install Open Web UI? (y/N)"
-if ($installWebui -eq "y") {
-    $webuiPath = "${Root}\AI_CORE\Apps\open-webui"
-    $webuiVenv = "${webuiPath}\venv"
+# ── Open Web UI ──
+Write-Host "Installing Open Web UI..."
+$webuiPath = "${Root}\AI_CORE\Apps\open-webui"
+$webuiVenv = "${webuiPath}\venv"
 
-    if (!(Test-Path $webuiPath)) {
-        New-Item -ItemType Directory -Path $webuiPath -Force | Out-Null
-    }
+if (!(Test-Path $webuiPath)) {
+    New-Item -ItemType Directory -Path $webuiPath -Force | Out-Null
+}
 
-    Set-Location "$webuiPath"
+Set-Location "$webuiPath"
 
-    if (!(Test-Path $webuiVenv)) {
-        Write-Host "Creating Python environment..."
-        py -3.11 -m venv venv
-    }
+if (!(Test-Path $webuiVenv)) {
+    Write-Host "Creating Python environment..."
+    py -3.11 -m venv venv
+}
 
-    Write-Host "Installing Open Web UI..."
-    .\venv\Scripts\Activate.ps1
-    pip install open-webui 2>&1 | Out-Null
-    deactivate
+Write-Host "Installing Open Web UI..."
+.\venv\Scripts\Activate.ps1
+pip install open-webui 2>&1 | Out-Null
+deactivate
 
-    # Launcher that reads port and listen address from config
-    $logDir = "${Root}\AI_CACHE\logs"
-    if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-    $launcher = @"
+# Launcher that reads port and listen address from config
+$logDir = "${Root}\AI_CACHE\logs"
+if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+$launcher = @"
 `$logFile = "$logDir\openwebui.log"
 `$webuiPath = "$webuiPath"
 `$portFile = "`${webuiPath}\..\..\..\AI_CONFIG\ports.json"
@@ -387,15 +386,13 @@ Set-Location "`$webuiPath"
 open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
 "@
 
-    $toolsDir = "${Root}\AI_TOOLS"
-    if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
-    $launcher | Out-File "${Root}\AI_TOOLS\launch_openwebui.ps1" -Encoding utf8
+$toolsDir = "${Root}\AI_TOOLS"
+if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
+$launcher | Out-File "${Root}\AI_TOOLS\launch_openwebui.ps1" -Encoding utf8
 
-    Write-Host "Open Web UI installed."
-    Write-Host "  Location: $webuiPath"
-    Write-Host "  Launch: ${Root}\AI_TOOLS\launch_openwebui.ps1"
-    Write-Host "  URL: http://127.0.0.1:3000"
-    Pop-Location
-} else {
-    Write-Host "Skipping Open Web UI (install later with: ai install openwebui)"
-}
+Write-Host "Open Web UI installed."
+Write-Host "  Location: $webuiPath"
+Write-Host "  Launch: ${Root}\AI_TOOLS\launch_openwebui.ps1"
+Write-Host "  URL: http://127.0.0.1:3000"
+Pop-Location
+
