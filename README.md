@@ -75,6 +75,11 @@ Get-ChildItem *.ps1 | Unblock-File
 | `ai setup env` | Check and fix environment variables |
 | `ai clean cache` | Free up disk space — pin models to AI_VAULT first (HF, PyTorch, ComfyUI temp, logs) |
 
+> **Tip:** ComfyUI releases frequently. Running `ai install comfyui` (or
+> `ai install all`) periodically pulls the latest version and updates
+> dependencies. Most issues resolve with an update — it's the first thing
+> to try.
+
 ## Scripts
 
 | Script | Purpose |
