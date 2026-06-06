@@ -4,6 +4,7 @@
 
 ### ROCm backend
 - **ROCm ComfyUI backend** — AMD-native PyTorch via ROCm 7.2.1 on Python 3.12 (`venv_rocm`), coexists with existing DirectML `venv`
+- **Auto-detect GPU generation** — RDNA2+ (RX 6000/7000/9000) auto-selects ROCm; RDNA1 (RX 5000) auto-selects DirectML. Override with `-Backend`
 - **Dual-backend install** — `ai install comfyui -Backend rocm|directml`. Reads existing backend from config on reinstall, no re-prompt
 - **Launcher auto-selects venv** — `Manage-ComfyUI` reads `comfyui_backend` from `system_config.json`, activates correct venv, sets `--directml` only when needed
 - **Doctor ROCm check** — `ai doctor` shows ROCm availability when `venv_rocm` is present
@@ -19,9 +20,6 @@
 ### Bugs
 - **Install-ComfyUI launcher port** — was hardcoded to `8188` regardless of `ports.json` config; now reads from `Get-PortConfig`
 - **Install-ComfyUI launcher listen address** — was hardcoded to `0.0.0.0`; now reads from `Get-PortConfig`
-
-### CLI
-- **`ai --boobs`** — Easter egg, courtesy of Moby
 
 ## 2026-06-04
 
