@@ -96,6 +96,8 @@ The scripts detect your GPU and install the correct backend automatically:
 - **AMD** — DirectML or ROCm. DirectML is the default compatible backend; ROCm
   (native PyTorch, Python 3.12) is available for faster inference on AMD GPUs
   with driver 26.2.2+. Select during install or pass `-Backend rocm`.
+  ROCm supports RDNA2+ (RX 6000/7000/9000 series); RX 5000 series uses DirectML.
+  See [COMPATIBILITY.md](COMPATIBILITY.md) for details.
 
 ## Port Configuration
 
