@@ -1,40 +1,49 @@
-graph LR
-    Start((Start)) --> A[Read guide]
-    A --> B[Prerequisites<br>Admin + ExecutionPolicy]
-    B --> C{GPU Detection}
-    
-    C -->|NVIDIA| D[CUDA backend<br>PyTorch CUDA]
-    C -->|AMD RDNA2-4| E[ROCm backend<br>PyTorch ROCm<br>Python 3.12]
-    C -->|AMD RDNA1| F[DirectML backend<br>PyTorch DirectML<br>Python 3.11]
-    C -->|Intel / None| G[CPU fallback<br>PyTorch CPU<br>Very slow]
-    
-    D --> H[1-init.ps1<br>Create folders]
-    E --> H
-    F --> H
-    G --> H
-    
-    H --> I((🔁 RESTART<br>PowerShell))
-    I --> J[2-deps.ps1<br>Run as Admin]
-    J --> K((🔁 RESTART<br>PowerShell))
-    K --> L[3-comfyui.ps1<br>Installs selected backend]
-    L --> M[ai setup path]
-    M --> N[ai start all]
-    N --> O((✨ Done))
-    
-    style Start fill:#1a3a5c,stroke:#4a9eff,stroke-width:2px,color:white
-    style O fill:#2d6a4f,stroke:#74c48a,stroke-width:2px,color:white
-    style I fill:#c44536,stroke:#ff7b5c,stroke-width:2px,color:white
-    style K fill:#c44536,stroke:#ff7b5c,stroke-width:2px,color:white
-    
-    style A fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style B fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style C fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style D fill:none,stroke:#76b900,stroke-width:1.5px
-    style E fill:none,stroke:#ed1c24,stroke-width:1.5px
-    style F fill:none,stroke:#ed1c24,stroke-width:1.5px
-    style G fill:none,stroke:#808080,stroke-width:1.5px
-    style H fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style J fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style L fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style M fill:none,stroke:#4a9eff,stroke-width:1.5px
-    style N fill:none,stroke:#4a9eff,stroke-width:1.5px
+flowchart TB
+    subgraph Init["1-init.ps1"]
+        A1[Prompt for install path] --> A2[Check admin/developer mode]
+        A2 --> A3[Create 6-layer folder structure]
+        A3 --> A4[Create symlink bindings]
+        A4 --> A5[Write config files]
+        A5 --> A6[⚠️ RESTART PowerShell]
+    end
+
+    subgraph Deps["2-deps.ps1"]
+        B1[Check admin rights] --> B2[winget install Git]
+        B2 --> B3[winget install Python 3.10/3.11/3.12]
+        B3 --> B4[winget install Ollama]
+        B4 --> B5[winget install FFmpeg]
+        B5 --> B6[Set environment variables]
+        B6 --> B7[⚠️ RESTART PowerShell]
+    end
+
+    subgraph Comfy["3-comfyui.ps1"]
+        C1[Detect root path] --> C2[Check env vars]
+        C2 --> C3[Clone or update ComfyUI]
+        C3 --> C4[Detect GPU]
+        C4 --> C5{AMD?}
+        C5 -->|No| C6N[Create venv Python 3.11]
+        C5 -->|Yes - RDNA1| C6D[Auto: DirectML path]
+        C5 -->|Yes - RDNA2+| C6R[Auto: ROCm path]
+        C6N --> C7N[pip install requirements.txt]
+        C6D --> C7D[pip install torch-directml]
+        C7D --> C8D[pip install requirements.txt]
+        C8D --> C9D[Patch torchaudio for AMD]
+        C6R --> C7R[py -3.12 -m venv venv_rocm]
+        C7R --> C8R[pip install ROCm SDK]
+        C8R --> C9R[pip install ROCm torch/torchaudio/torchvision]
+        C9R --> C10R[pip install requirements.txt]
+        C10R --> C11R[Reinstall ROCm torchaudio]
+        C7N --> C12[Write backend to config]
+        C9D --> C12
+        C11R --> C12
+        C12 --> C13[Write extra_model_paths.yaml]
+        C13 --> C14[Generate launch script]
+    end
+
+    subgraph Setup["Post-install"]
+        D1[ai setup path] --> D2[ai start all]
+    end
+
+    A6 --> Deps
+    B7 --> Comfy
+    Comfy --> Setup
