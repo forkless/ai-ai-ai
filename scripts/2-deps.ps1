@@ -108,4 +108,4 @@ if ($detectedRoot) {
 }
 
 Write-Host ""
-Write-Host "Next step: Restart PowerShell, then run 3-comfyui.ps1"
+Write-Host "Next step: Restart PowerShell, then run 3-apps.ps1"

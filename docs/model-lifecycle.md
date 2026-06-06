@@ -503,7 +503,7 @@ Beyond manual promote, the architecture supports:
 
 ### v0.x — PowerShell (current)
 
-Bootstrap scripts (`1-init.ps1`, `2-deps.ps1`, `3-comfyui.ps1`) handle provisioning.
+Bootstrap scripts (`1-init.ps1`, `2-deps.ps1`, `3-apps.ps1`) handle provisioning.
 `ai.ps1` handles service management, diagnostics, and cache cleanup.
 All model operations are manual (download to cache, place in vault by hand).
 

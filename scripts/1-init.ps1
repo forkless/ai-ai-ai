@@ -93,7 +93,7 @@ Write-Host "Folders: $created created, $skipped already exist"
 
 # -------------------------
 # GPU DETECTION — Queries WMI for NVIDIA/AMD. Result goes to system_config.json.
-# Only affects backend choice (CUDA vs DirectML) in 3-comfyui.ps1.
+# Only affects backend choice (CUDA vs DirectML) in 3-apps.ps1.
 # -------------------------
 
 $gpuType = "unknown"

@@ -35,7 +35,7 @@
 
 ### Vault layout
 - Added `diffusion_models/` and `clip/` directories to vault structure (`1-init.ps1`)
-- Mapped both paths in `extra_model_paths.yaml` (`3-comfyui.ps1`, `ai.ps1` Install-ComfyUI)
+- Mapped both paths in `extra_model_paths.yaml` (`3-apps.ps1`, `ai.ps1` Install-ComfyUI)
 - Install functions now ensure vault directories exist before writing model path config
 
 ### Install safety

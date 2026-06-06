@@ -13,7 +13,7 @@
 
 ```powershell
 .\scripts\2-deps.ps1          # install Python 3.12 + other deps
-.\scripts\3-comfyui.ps1 -Backend rocm
+.\scripts\3-apps.ps1 -Backend rocm
 ```
 
 Or via the CLI after bootstrap:

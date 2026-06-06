@@ -10,7 +10,7 @@
   │                    Set environment variables           │
   │                    🔁 Restart PowerShell               │
   │                                                       │
-  │  3. 3-comfyui.ps1 Clone ComfyUI + setup Python env    │
+  │  3. 3-apps.ps1    Clone ComfyUI + setup Python env    │
   │                    Detect GPU → choose backend         │
   │                    (CUDA / DirectML / ROCm)            │
   │                    Install Python packages             │

@@ -51,8 +51,8 @@ Get-ChildItem *.ps1 | Unblock-File
 
 # Restart PowerShell
 
-# Step 3 — install ComfyUI (clone, venv, model paths, launcher)
-.\scripts\3-comfyui.ps1
+# Step 3 — install apps (ComfyUI + optional Open Web UI)
+.\scripts\3-apps.ps1
 
 # Make the ai command available everywhere
 .\scripts\ai.ps1 setup path
@@ -85,7 +85,7 @@ Get-ChildItem *.ps1 | Unblock-File
 |--------|---------|
 | `scripts/1-init.ps1` | Creates folder structure, detects GPU, sets up symlinks, writes config files |
 | `scripts/2-deps.ps1` | Installs Git, Python 3.10/3.11, Ollama, FFmpeg via winget. Sets environment variables |
-| `scripts/3-comfyui.ps1` | Clones ComfyUI, creates Python 3.11 venv, installs dependencies (CUDA or DirectML), configures model paths |
+| `scripts/3-apps.ps1` | Installs ComfyUI (clone, venv, model paths, launcher) with optional Open Web UI. GPU-aware backend selection |
 | `scripts/ai.ps1` | Daily driver CLI — service management, status, diagnostics, model listing, cache cleanup, environment setup |
 
 ## GPU / CPU Support
