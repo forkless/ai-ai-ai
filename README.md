@@ -77,8 +77,7 @@ Get-ChildItem *.ps1 | Unblock-File
 
 > **Tip:** ComfyUI releases frequently. Running `ai install comfyui` (or
 > `ai install all`) periodically pulls the latest version and updates
-> dependencies. Most issues resolve with an update — it's the first thing
-> to try.
+> dependencies. Most issues resolve with an update.
 
 ## Scripts
 

@@ -56,7 +56,7 @@ Both venvs coexist — `venv` (DirectML, Python 3.11) and `venv_rocm` (ROCm, Pyt
 
 ComfyUI has a rapid release cycle — often multiple updates per week. Running
 `ai install comfyui` (or `ai install all`) regularly pulls the latest version
-and updates dependencies. Most issues resolve with an update.
+and updates dependencies. Many issues resolve with an update.
 
 ### ComfyUI starts but `cuda:0` is not available
 
