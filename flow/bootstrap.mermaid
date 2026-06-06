@@ -1,0 +1,40 @@
+graph LR
+    Start((Start)) --> A[Read guide]
+    A --> B[Prerequisites<br>Admin + ExecutionPolicy]
+    B --> C{GPU Detection}
+    
+    C -->|NVIDIA| D[CUDA backend<br>PyTorch CUDA]
+    C -->|AMD RDNA2-4| E[ROCm backend<br>PyTorch ROCm<br>Python 3.12]
+    C -->|AMD RDNA1| F[DirectML backend<br>PyTorch DirectML<br>Python 3.11]
+    C -->|Intel / None| G[CPU fallback<br>PyTorch CPU<br>Very slow]
+    
+    D --> H[1-init.ps1<br>Create folders]
+    E --> H
+    F --> H
+    G --> H
+    
+    H --> I((🔁 RESTART<br>PowerShell))
+    I --> J[2-deps.ps1<br>Run as Admin]
+    J --> K((🔁 RESTART<br>PowerShell))
+    K --> L[3-comfyui.ps1<br>Installs selected backend]
+    L --> M[ai setup path]
+    M --> N[ai start all]
+    N --> O((✨ Done))
+    
+    style Start fill:#1a3a5c,stroke:#4a9eff,stroke-width:2px,color:white
+    style O fill:#2d6a4f,stroke:#74c48a,stroke-width:2px,color:white
+    style I fill:#c44536,stroke:#ff7b5c,stroke-width:2px,color:white
+    style K fill:#c44536,stroke:#ff7b5c,stroke-width:2px,color:white
+    
+    style A fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style B fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style C fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style D fill:none,stroke:#76b900,stroke-width:1.5px
+    style E fill:none,stroke:#ed1c24,stroke-width:1.5px
+    style F fill:none,stroke:#ed1c24,stroke-width:1.5px
+    style G fill:none,stroke:#808080,stroke-width:1.5px
+    style H fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style J fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style L fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style M fill:none,stroke:#4a9eff,stroke-width:1.5px
+    style N fill:none,stroke:#4a9eff,stroke-width:1.5px
