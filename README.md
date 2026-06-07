@@ -78,6 +78,13 @@ Get-ChildItem *.ps1 | Unblock-File
 > **Tip:** Due to the nature of ComfyUI's frequent release cycle, running
 > `ai install comfyui` (or `ai install all`) periodically pulls the latest
 > version and updates dependencies. Most issues resolve with an update.
+>
+> If a service doesn't appear to start, run its launcher directly in a visible
+> PowerShell window to see real-time output:
+> ```
+> D:\AI\AI_TOOLS\launch_comfyui.ps1
+> ```
+> Or use `ai watch <service>` in a second window while starting.
 
 ## Scripts
 
