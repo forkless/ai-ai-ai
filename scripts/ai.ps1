@@ -172,21 +172,8 @@ python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}
             Rotate-LogFile "$logDir\comfyui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             # Wait for service with retries (cold starts can take 15-30s)
-            Write-Host "Starting ComfyUI..."
-            $running = $null
-            $maxWait = 120
-            while ($maxWait -gt 0 -and -not $running) {
-                Start-Sleep -Seconds 2
-                $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${comfyPort} "
-                $maxWait -= 2
-            }
-            if (-not $running) {
-                Write-Host "Timed out waiting for ComfyUI to start — check the log:"
-                if (Test-Path "$logDir\comfyui.log") {
-                    Get-Content "$logDir\comfyui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
-                }
-                exit 1
-            }
+            # Service starts in background — use ai status or ai watch to check readiness
+            Write-Host "ComfyUI starting..."
         }
         "stop" {
             if (-not $comfyRunning) {
@@ -245,21 +232,7 @@ ollama serve *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.f
             Rotate-LogFile "$logDir\ollama.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
             # Wait for service with retries
-            Write-Host "Starting Ollama..."
-            $timeout = 20
-            $running = $null
-            while ($timeout -gt 0 -and -not $running) {
-                Start-Sleep -Seconds 2
-                $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} "
-                $timeout -= 2
-            }
-            if (-not $running) {
-                Write-Host "Timed out waiting for Ollama to start — check the log:"
-                if (Test-Path "$logDir\ollama.log") {
-                    Get-Content "$logDir\ollama.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
-                }
-                exit 1
-            }
+            Write-Host "Ollama starting..."
         }
         "stop" {
             if (-not $ollamaRunning) {
@@ -332,21 +305,7 @@ open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get
             Rotate-LogFile "$logDir\openwebui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
             # Wait for service with retries (Alembic migrations can be slow)
-            Write-Host "Starting Open Web UI..."
-            $timeout = 30
-            $running = $null
-            while ($timeout -gt 0 -and -not $running) {
-                Start-Sleep -Seconds 2
-                $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${webuiPort} "
-                $timeout -= 2
-            }
-            if (-not $running) {
-                Write-Host "Timed out waiting for Open Web UI to start — check the log:"
-                if (Test-Path "$logDir\openwebui.log") {
-                    Get-Content "$logDir\openwebui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
-                }
-                exit 1
-            }
+            Write-Host "Open Web UI starting..."
         }
         "stop" {
             if (-not $webuiRunning) {
