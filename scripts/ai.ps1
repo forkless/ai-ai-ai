@@ -173,17 +173,16 @@ python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             # Wait for service with retries (cold starts can take 15-30s)
             Write-Host "Starting ComfyUI..."
-            $timeout = 90
             $running = $null
-            while ($timeout -gt 0 -and -not $running) {
+            $maxWait = 120
+            while ($maxWait -gt 0 -and -not $running) {
                 Start-Sleep -Seconds 2
                 $running = netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${comfyPort} "
-                $timeout -= 2
+                $maxWait -= 2
             }
             if (-not $running) {
-                Write-Host "ERROR: ComfyUI failed to start"
+                Write-Host "Timed out waiting for ComfyUI to start — check the log:"
                 if (Test-Path "$logDir\comfyui.log") {
-                    Write-Host "Last lines of comfyui.log:"
                     Get-Content "$logDir\comfyui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
                 }
                 exit 1
@@ -255,9 +254,8 @@ ollama serve *>> "`$logFile"
                 $timeout -= 2
             }
             if (-not $running) {
-                Write-Host "ERROR: Ollama failed to start"
+                Write-Host "Timed out waiting for Ollama to start — check the log:"
                 if (Test-Path "$logDir\ollama.log") {
-                    Write-Host "Last lines of ollama.log:"
                     Get-Content "$logDir\ollama.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
                 }
                 exit 1
@@ -343,9 +341,8 @@ open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
                 $timeout -= 2
             }
             if (-not $running) {
-                Write-Host "ERROR: Open Web UI failed to start"
+                Write-Host "Timed out waiting for Open Web UI to start — check the log:"
                 if (Test-Path "$logDir\openwebui.log") {
-                    Write-Host "Last lines of openwebui.log:"
                     Get-Content "$logDir\openwebui.log" -Tail 15 | ForEach-Object { Write-Host "  | $_" }
                 }
                 exit 1
