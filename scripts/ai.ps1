@@ -853,7 +853,7 @@ function Show-Status {
             Select-Object -ExpandProperty Average
     } -ArgumentList "\GPU(*)\Utilization Percentage"
     $gpuUtil = Wait-Job $job -Timeout 3 | Receive-Job
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
 
     if ($gpuUtil -eq $null -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
@@ -868,7 +868,7 @@ function Show-Status {
             Select-Object -ExpandProperty Sum
     } -ArgumentList "\GPU Adapter Memory\Dedicated Usage"
     $gpuVramUsed = Wait-Job $job -Timeout 3 | Receive-Job
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     if ($gpuVramUsed -eq $null) {
         try {
             Add-Type -TypeDefinition @'
@@ -980,7 +980,7 @@ public class DxVram {
     $ollamaModels = @()
     $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
     $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
@@ -1030,7 +1030,7 @@ function Show-Models {
     # Timeout-safe ollama list
     $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
     $rawModels = Wait-Job $job -Timeout 3 | Receive-Job
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     $ollamaModels = @($rawModels | ForEach-Object {
         $parts = $_ -split '\s{2,}'
         if ($parts.Count -ge 3) {
@@ -1345,7 +1345,7 @@ function Doctor-Check {
     # Timeout-safe ollama list
     $job = Start-Job -ScriptBlock { @(ollama list 2>$null | Select-Object -Skip 1).Count }
     $ollamaCount = Wait-Job $job -Timeout 3 | Receive-Job
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     $diffC = @(Get-ChildItem "$Root\AI_VAULT\models\diffusion" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$([int]$ollamaCount) LLM(s), $diffC diffusion")
 
