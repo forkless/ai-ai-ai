@@ -173,7 +173,7 @@ python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             # Wait for service with retries (cold starts can take 15-30s)
             Write-Host "Starting ComfyUI..."
-            $timeout = 30
+            $timeout = 90
             $running = $null
             while ($timeout -gt 0 -and -not $running) {
                 Start-Sleep -Seconds 2
