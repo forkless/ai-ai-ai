@@ -165,7 +165,7 @@ function Manage-ComfyUI {
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$comfyPath"
 $activatePath
-python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
+python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
             $launcherContent | Out-File $launcher -Encoding utf8
             # Rotate log so error output reflects only this session
@@ -239,7 +239,7 @@ function Manage-Ollama {
             $launcher = @"
 `$logFile = "$logDir\ollama.log"
 `$env:OLLAMA_HOST = "${ollamaHost}:${ollamaPort}"
-ollama serve *>> "`$logFile"
+ollama serve *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
             $launcher | Out-File $ollamaLauncher -Encoding utf8
             Rotate-LogFile "$logDir\ollama.log"
@@ -326,7 +326,7 @@ if (Test-Path `$portFile) {
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
+open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
             $launcher | Out-File $webuiLauncher -Encoding utf8
             Rotate-LogFile "$logDir\openwebui.log"
@@ -671,7 +671,7 @@ vault_config:
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 $activatePath
-python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
+python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
     # Ensure target directory exists
     $toolsDir = "${Root}\AI_TOOLS"
@@ -752,7 +752,7 @@ if (Test-Path `$portFile) {
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
+open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
 
     $toolsDir = "${Root}\AI_TOOLS"

@@ -321,7 +321,7 @@ $launcher = @"
 `$logFile = "$logDir\comfyui.log"
 Set-Location "$ComfyPath"
 $activatePath
-python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>> "`$logFile"
+python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root}\AI_WORKSPACE\output" --temp-directory "${Root}\AI_CACHE\comfyui_temp" --use-pytorch-cross-attention --disable-smart-memory --bf16-unet$gpuFlag *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
 $toolsDir = "${Root}\AI_TOOLS"
 if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
@@ -383,7 +383,7 @@ if (Test-Path `$portFile) {
 }
 Set-Location "`$webuiPath"
 .\venv\Scripts\Activate.ps1
-open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
+open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fff') `$_" } | Out-File "`$logFile" -Append
 "@
 
 $toolsDir = "${Root}\AI_TOOLS"
