@@ -843,12 +843,32 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # GPU utilization and VRAM used — try WDDM counters first, then DXGI via C# P/Invoke
-    $gpuUtil = Get-Counter "\GPU(*)\Utilization Percentage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total|engine" } | Measure-Object -Property CookedValue -Average | Select-Object -ExpandProperty Average
+    # GPU utilization — use timeout-safe job (Get-Counter can hang on some AMD drivers)
+    $gpuUtil = $null
+    $job = Start-Job -ScriptBlock {
+        param($c) Get-Counter $c -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.CounterSamples } |
+            Where-Object { $_.Path -notmatch "_Total|engine" } |
+            Measure-Object -Property CookedValue -Average |
+            Select-Object -ExpandProperty Average
+    } -ArgumentList "\GPU(*)\Utilization Percentage"
+    $gpuUtil = Wait-Job $job -Timeout 3 | Receive-Job
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
+
     if ($gpuUtil -eq $null -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
         $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
     }
-    $gpuVramUsed = Get-Counter "\GPU Adapter Memory\Dedicated Usage" -ErrorAction SilentlyContinue | ForEach-Object { $_.CounterSamples } | Where-Object { $_.Path -notmatch "_Total" } | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum
+    # VRAM usage — timeout-safe job (can hang on some AMD drivers)
+    $gpuVramUsed = $null
+    $job = Start-Job -ScriptBlock {
+        param($c) Get-Counter $c -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.CounterSamples } |
+            Where-Object { $_.Path -notmatch "_Total" } |
+            Measure-Object -Property CookedValue -Sum |
+            Select-Object -ExpandProperty Sum
+    } -ArgumentList "\GPU Adapter Memory\Dedicated Usage"
+    $gpuVramUsed = Wait-Job $job -Timeout 3 | Receive-Job
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
     if ($gpuVramUsed -eq $null) {
         try {
             Add-Type -TypeDefinition @'
@@ -956,7 +976,11 @@ public class DxVram {
     $llmDir = "$Root\AI_VAULT\models\llm"
     $diffDir = "$Root\AI_VAULT\models\diffusion"
     $embedDir = "$Root\AI_VAULT\models\embeddings"
-    $ollamaRows = @(ollama list 2>$null | Select-Object -Skip 1)
+    # Timeout-safe ollama list (hangs if service is installed but not running)
+    $ollamaModels = @()
+    $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
+    $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
     $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
@@ -1003,7 +1027,10 @@ function Show-Models {
         return "$bytes B"
     }
 
-    $rawModels = ollama list 2>$null | Select-Object -Skip 1
+    # Timeout-safe ollama list
+    $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
+    $rawModels = Wait-Job $job -Timeout 3 | Receive-Job
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
     $ollamaModels = @($rawModels | ForEach-Object {
         $parts = $_ -split '\s{2,}'
         if ($parts.Count -ge 3) {
@@ -1315,9 +1342,12 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Model bindings", $(if ($bindOk) { "OK" } else { "MISSING" }))
 
     # Models
-    $olMods = @(ollama list 2>$null | Select-Object -Skip 1)
+    # Timeout-safe ollama list
+    $job = Start-Job -ScriptBlock { @(ollama list 2>$null | Select-Object -Skip 1).Count }
+    $ollamaCount = Wait-Job $job -Timeout 3 | Receive-Job
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
     $diffC = @(Get-ChildItem "$Root\AI_VAULT\models\diffusion" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count
-    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$($olMods.Count) LLM(s), $diffC diffusion")
+    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$([int]$ollamaCount) LLM(s), $diffC diffusion")
 
     # Environment variables
     $envOk = $true
