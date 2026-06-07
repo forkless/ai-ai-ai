@@ -172,6 +172,7 @@ python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}
             Rotate-LogFile "$logDir\comfyui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
             # Wait for service with retries (cold starts can take 15-30s)
+            Write-Host "Starting ComfyUI..."
             $timeout = 30
             $running = $null
             while ($timeout -gt 0 -and -not $running) {
@@ -245,6 +246,7 @@ ollama serve *>> "`$logFile"
             Rotate-LogFile "$logDir\ollama.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ollamaLauncher`""
             # Wait for service with retries
+            Write-Host "Starting Ollama..."
             $timeout = 20
             $running = $null
             while ($timeout -gt 0 -and -not $running) {
@@ -332,6 +334,7 @@ open-webui serve --host `$hostAddr --port `$port *>> "`$logFile"
             Rotate-LogFile "$logDir\openwebui.log"
             Start-Process -WindowStyle Hidden -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$webuiLauncher`""
             # Wait for service with retries (Alembic migrations can be slow)
+            Write-Host "Starting Open Web UI..."
             $timeout = 30
             $running = $null
             while ($timeout -gt 0 -and -not $running) {
