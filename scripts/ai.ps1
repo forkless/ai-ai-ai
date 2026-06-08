@@ -1306,11 +1306,18 @@ function Doctor-Check {
 
     # Ollama version — run once, extract version from output
     $ollamaVer = "FAIL"
-    $ollamaOut = & ollama --version 2>&1 | Select-String "ollama version is" | Select-Object -First 1
-    if ($ollamaOut -match 'ollama version is (\S+)') {
+    $ollamaRaw = & ollama --version 2>&1 | Select-Object -First 1
+    $ollamaMatch = $ollamaRaw | Select-String "ollama version is" | Select-Object -First 1
+    if ($ollamaMatch -match 'ollama version is (\S+)') {
         $ollamaVer = $matches[1] -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
+    if ($ollamaVer -eq "FAIL") {
+        $ollamaPath = Get-Command "ollama" -ErrorAction SilentlyContinue | ForEach-Object { $_.Source }
+        $ollamaWhich = if ($ollamaPath) { $ollamaPath } else { "not in PATH" }
+        Write-Host "│ Ollama location:  $(($ollamaWhich).PadRight(28).Substring(0,28)) │"
+        Write-Host "│ Ollama output:    $(($ollamaRaw).PadRight(28).Substring(0,28)) │"
+    }
 
     # ComfyUI
     $comfyFile = "$Root\AI_CORE\Apps\ComfyUI\comfyui_version.py"
