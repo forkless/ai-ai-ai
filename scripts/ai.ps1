@@ -236,8 +236,19 @@ ollama serve *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.f
             # Graceful stop first, then kill all ollama processes
             # (Ollama tray app auto-restarts the server if only the port owner is killed)
             ollama stop 2>$null | Out-Null
-            Get-Process "ollama","ollama-app" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
+            Get-Process "*ollama*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            # Verify the port freed up — retry if tray app respawns
+            $timeout = 10
+            while ($timeout -gt 0 -and (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ")) {
+                Start-Sleep -Seconds 1
+                # Kill any new ollama processes that may have been restarted
+                Get-Process "*ollama*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                $timeout--
+            }
+            if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
+                Write-Host "ERROR: Could not stop Ollama. Close it manually and try again."
+                exit 1
+            }
             Write-Host "Ollama stopped."
         }
         "status" {
