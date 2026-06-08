@@ -1304,12 +1304,17 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama version — extract from output (second line; first is warning if not running)
+    # Ollama version — some versions omit the version when server is offline
+    $ollamaAll = & ollama --version 2>&1
     $ollamaVer = "FAIL"
-    $ollamaMatch = & ollama --version 2>&1 | Select-String "ollama version is" | Select-Object -First 1
-    if ($ollamaMatch) {
-        $ollamaVer = $ollamaMatch.Line -replace '^.*ollama version is (\S+).*', '$1'
-        $ollamaVer = $ollamaVer -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
+    if ($ollamaAll) {
+        $verLine = $ollamaAll | Select-String "ollama version is" | Select-Object -First 1
+        if ($verLine) {
+            $ollamaVer = $verLine.Line -replace '^.*ollama version is (\S+).*', '$1'
+            $ollamaVer = $ollamaVer -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
+        } elseif ($ollamaAll -match "could not connect") {
+            $ollamaVer = "Installed (ver shown running)"
+        }
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
