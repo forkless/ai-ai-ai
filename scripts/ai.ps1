@@ -442,9 +442,9 @@ function Install-ComfyUI {
         $pullResult = Receive-Job $job
         Remove-Job $job -Force -ErrorAction SilentlyContinue
         if ($pullResult -match "Already up to date") {
-            Write-Host "`r  Up to date"
+            Write-Host "`r  Up to date$(' ' * 10)"
         } else {
-            Write-Host "`r  Updated"
+            Write-Host "`r  Updated$(' ' * 13)"
         }
     }
 
@@ -675,9 +675,9 @@ function Install-ComfyUI-Manager {
         $pullResult = Receive-Job $job
         Remove-Job $job -Force -ErrorAction SilentlyContinue
         if ($pullResult -notmatch "Already up to date") {
-            Write-Host "`r  Updated — restart ComfyUI"
+            Write-Host "`r  Updated — restart ComfyUI$(' ' * 2)"
         } else {
-            Write-Host "`r  Up to date"
+            Write-Host "`r  Up to date$(' ' * 10)"
         }
     }
     Pop-Location
