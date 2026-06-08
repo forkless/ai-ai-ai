@@ -1266,12 +1266,27 @@ function Doctor-Check {
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($backendLabel)")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
-        # ROCm check — show actual version if available
-        $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\python.exe"
-        if (Test-Path $pyExe) {
-            $rocmVer = & $pyExe -c "import torch; print(torch.version.hip if torch.cuda.is_available() else 'no GPU')" 2>$null
-            $rocmDisplay = if ($rocmVer -and $rocmVer -ne "no GPU") { $rocmVer -replace '^(\d+\.\d+\.\d+).*', '$1' } else { $rocmVer }
-            Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $rocmDisplay)
+        # Backend version — check the active venv
+        $comfyBackend = if ($cfg.comfyui_backend) { $cfg.comfyui_backend } else { $cfg.gpu }
+        if ($comfyBackend -eq "rocm") {
+            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\python.exe"
+            if (Test-Path $pyExe) {
+                $ver = & $pyExe -c "import torch; print(torch.version.hip if torch.cuda.is_available() else 'no GPU')" 2>$null
+                Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $(if ($ver -and $ver -ne "no GPU") { $ver -replace '^(\d+\.\d+\.\d+).*', '$1' } else { $ver }))
+            }
+        } elseif ($comfyBackend -eq "directml") {
+            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\python.exe"
+            if (Test-Path $pyExe) {
+                $ver = & $pyExe -c "import torch; print(torch.version.cuda if torch.cuda.is_available() else 'CPU')" 2>$null
+                Write-Host ("│ {0,-20} │ {1,-28} │" -f "DirectML", $ver)
+            }
+        } else {
+            # NVIDIA / CUDA
+            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\python.exe"
+            if (Test-Path $pyExe) {
+                $ver = & $pyExe -c "import torch; print(torch.version.cuda)" 2>$null
+                Write-Host ("│ {0,-20} │ {1,-28} │" -f "CUDA", $(if ($ver) { $ver } else { "?" }))
+            }
         }
     } else {
         Write-Host "│ not initialized      │ run 1-init.ps1"
