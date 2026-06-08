@@ -1260,11 +1260,11 @@ function Doctor-Check {
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($($cfg.gpu.ToUpper()))")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
-        # ROCm check
+        # ROCm check — show actual version if available
         $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\python.exe"
         if (Test-Path $pyExe) {
-            $rocmOut = & $pyExe -c "import torch; print('ROCm' if torch.cuda.is_available() else 'no GPU')" 2>$null
-            Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $(if ($rocmOut -eq "ROCm") { "avail" } else { $rocmOut }))
+            $rocmVer = & $pyExe -c "import torch; print(torch.version.hip if torch.cuda.is_available() else 'no GPU')" 2>$null
+            Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $(if ($rocmVer -and $rocmVer -ne "no GPU") { $rocmVer } else { $rocmVer }))
         }
     } else {
         Write-Host "│ not initialized      │ run 1-init.ps1"
@@ -1282,8 +1282,9 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama
-    $ollamaVer = if (ollama --version 2>$null) { (ollama --version 2>$null) -replace '^ollama version is (\S+).*', '$1' } else { "FAIL" }
+    # Ollama (version may be on stderr on newer releases)
+    $ollamaRaw = ollama --version 2>&1
+    $ollamaVer = if ($ollamaRaw) { ($ollamaRaw | Select-Object -First 1) -replace '^ollama version is (\S+).*', '$1' } else { "FAIL" }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
     # ComfyUI
@@ -1317,8 +1318,8 @@ function Doctor-Check {
         Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     }
     $diffC = @(Get-ChildItem "$Root\AI_VAULT\models\diffusion" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count
-    $llmStr = if ($ollamaCount -eq 0) { "0 LLM(s) (service offline)" } else { "$([int]$ollamaCount) LLM(s)" }
-    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$llmStr, $diffC diffusion")
+    $llmStr = if ($ollamaCount -eq 0) { "0 LLM, offline" } else { "$([int]$ollamaCount) LLM" }
+    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$llmStr, $diffC diff")
 
     # Environment variables
     $envOk = $true
