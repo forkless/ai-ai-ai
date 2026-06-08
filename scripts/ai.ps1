@@ -760,7 +760,7 @@ function Show-Status {
         Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f $svc.Name, $status, $portTxt)
     }
     # ── Models section ──
-    Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
+    Write-Host "├──────────────┴─────────┴──────────────────────────────┤"
     $llmDir = "$Root\AI_VAULT\models\llm"
     $diffDir = "$Root\AI_VAULT\models\diffusion"
     $ollamaModels = @()
@@ -776,9 +776,9 @@ function Show-Status {
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
-    Write-Host ("│ {0,-12} │ {1,-37} │" -f "LLMs", $(if ($ollamaScanned) { $llmCount } else { "─" }))
-    Write-Host ("│ {0,-12} │ {1,-37} │" -f "Diffusion", $diffCount)
-    Write-Host ("│ {0,-12} │ {1,-37} │" -f "VAEs", $vaeCount)
+    Write-Host ("│ {0,-12} │ {1,-38} │" -f "LLMs", $(if ($ollamaScanned) { $llmCount } else { "─" }))
+    Write-Host ("│ {0,-12} │ {1,-38} │" -f "Diffusion", $diffCount)
+    Write-Host ("│ {0,-12} │ {1,-38} │" -f "VAEs", $vaeCount)
 
     # ── System resources section ──
     Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
