@@ -1304,14 +1304,11 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama version — find binary via PATH, read file metadata
-    $ollamaPath = ($env:PATH -split ';' | ForEach-Object { "$_\ollama.exe" } | Where-Object { Test-Path $_ }) | Select-Object -First 1
+    # Ollama version — run once, extract version from output
     $ollamaVer = "FAIL"
-    if ($ollamaPath) {
-        $vi = (Get-Item $ollamaPath).VersionInfo
-        $verRaw = if ($vi.FileVersion) { $vi.FileVersion } else { $vi.ProductVersion }
-        if ($verRaw) { $ollamaVer = "$verRaw" -replace '^(\d+(?:\.\d+){1,2}).*', '$1' }
-        else { $ollamaVer = "?" }
+    $ollamaOut = & ollama --version 2>&1 | Select-String "ollama version is" | Select-Object -First 1
+    if ($ollamaOut -match 'ollama version is (\S+)') {
+        $ollamaVer = $matches[1] -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
