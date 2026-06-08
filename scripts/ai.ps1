@@ -647,6 +647,7 @@ python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root
 }
 
 function Install-ComfyUI-Manager {
+    Write-Host "Checking ComfyUI-Manager..."
     Manage-ComfyUI "stop"
     Push-Location
     $nodeDir = "${Root}\AI_CORE\Apps\ComfyUI\custom_nodes\ComfyUI-Manager"
