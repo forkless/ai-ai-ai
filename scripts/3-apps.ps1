@@ -2,7 +2,7 @@
 3-apps.ps1 — Ai, ai, ai! Bootstrap v0.1.2
 Install ComfyUI (with optional Open Web UI) and connect to AI_VAULT.
 Requires: 1-init.ps1 and 2-deps.ps1 already run.
-Parameter: -Backend directml|rocm (AMD only, defaults to prompt)
+Parameter: --switch directml|rocm (AMD only, defaults to prompt)
 #>
 param(
     [ValidateSet("directml", "rocm")]
@@ -111,17 +111,17 @@ if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) {
     }
     if ($existingCfg -and $existingCfg.comfyui_backend -eq "rocm") {
         $Backend = "rocm"
-        Write-Host "Using existing ROCm backend (pass -Backend directml to switch)"
+        Write-Host "Using existing ROCm backend (pass --switch directml to change)"
     } elseif ($existingCfg -and $existingCfg.comfyui_backend -eq "directml") {
         $Backend = "directml"
-        Write-Host "Using existing DirectML backend (pass -Backend rocm to switch)"
+        Write-Host "Using existing DirectML backend (pass --switch rocm to change)"
     } elseif ($amdGen -eq "rdna1") {
         $Backend = "directml"
         Write-Host "RX 5000 series detected — DirectML is the only compatible backend (ROCm requires RDNA2+)"
     } else {
         # Auto-select ROCm on RDNA2+ hardware
         $Backend = "rocm"
-        Write-Host "Auto-selected ROCm backend for ${amdGen} GPU (pass -Backend directml to override)"
+        Write-Host "Auto-selected ROCm backend for ${amdGen} GPU (pass --switch directml to override)"
     }
 }
 if ($gpuType -eq "amd" -and [string]::IsNullOrEmpty($Backend)) { $Backend = "directml" }

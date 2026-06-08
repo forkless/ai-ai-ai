@@ -13,13 +13,13 @@
 
 ```powershell
 .\scripts\2-deps.ps1          # install Python 3.12 + other deps
-.\scripts\3-apps.ps1 -Backend rocm
+.\scripts\3-apps.ps1 --switch rocm
 ```
 
 Or via the CLI after bootstrap:
 
 ```powershell
-ai install comfyui -Backend rocm
+ai install comfyui --switch rocm
 ```
 
 ### Verifying ROCm is Working
@@ -42,8 +42,8 @@ AMD Radeon RX 9070 XT
 ### Switching Backends
 
 ```powershell
-ai install comfyui -Backend directml   # switch to DirectML
-ai install comfyui -Backend rocm       # switch back to ROCm
+ai install comfyui --switch directml   # switch to DirectML
+ai install comfyui --switch rocm       # switch back to ROCm
 ```
 
 Both venvs coexist — `venv` (DirectML, Python 3.11) and `venv_rocm` (ROCm, Python 3.12).
@@ -68,7 +68,7 @@ and updates dependencies. Many issues resolve with an update.
 If `False`, the ROCm wheels didn't install correctly. Reinstall with:
 
 ```powershell
-ai install comfyui -Backend rocm
+ai install comfyui --switch rocm
 ```
 
 ### `onnxruntime` missing for custom nodes

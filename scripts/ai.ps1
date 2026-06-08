@@ -50,10 +50,10 @@ if ($Command -eq "--version" -or $Command -eq "-v") { $Command = "version" }
 # Easter egg
 if ($Command -eq "--boobs") { Write-Host "(o)(o)`n"; Write-Host "The fastest stable diffussion of boobs... ever."; exit 0 }
 
-# Extract -Backend option from remaining args
+# Extract -switch option from remaining args
 $BackendArg = ""
 for ($i = 2; $i -lt $args.Count; $i++) {
-    if ($args[$i] -eq "-Backend" -and $i + 1 -lt $args.Count) { $BackendArg = $args[$i + 1] }
+    if ($args[$i] -eq "--switch" -and $i + 1 -lt $args.Count) { $BackendArg = $args[$i + 1] }
 }
 
 <#
@@ -73,7 +73,7 @@ function Show-Help {
     Write-Host "Usage: ai <command>"
     Write-Host ""
     Write-Host ($cmd -f "install <service>",       "Install or update comfyui, comfyui-manager, ollama, openwebui or all")
-    Write-Host ($cmd -f " ",-f "","-Backend rocm|directml","For AMD: select ROCm or DirectML backend (install comfyui only)")
+    Write-Host ($cmd -f " ",-f "","--switch rocm|directml","For AMD: select ROCm or DirectML backend (install comfyui only)")
     Write-Host ($cmd -f "start <service>",        "Start a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "stop <service>",         "Stop a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "restart <service>",       "Restart a service (all, ollama, comfyui, openwebui)")
@@ -454,7 +454,7 @@ function Install-ComfyUI {
             } else {
                 # Auto-select ROCm on RDNA2+ hardware
                 $Backend = "rocm"
-                if ($freshInstall) { Write-Host "  Auto-selected ROCm backend (pass -Backend directml to override)" }
+                if ($freshInstall) { Write-Host "  Auto-selected ROCm backend (pass --switch directml to override)" }
             }
         }
         # Re-check: refuse ROCm on unsupported hardware
