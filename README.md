@@ -1,4 +1,4 @@
-# Ai, ai, ai! Bootstrap v0.1.1
+# Ai, ai, ai! Bootstrap v0.1.2
 
 > **⚠️ WARNING:** These scripts are functional but far from ready for general use.
 > You will encounter rough edges, incomplete error handling, and sharp corners.

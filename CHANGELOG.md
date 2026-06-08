@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-06-08
+
+### Clean install output
+- **Streamlined upgrade output** — `ai install all` now shows only clean status lines per service: `Checking X... Up to date` or `Updated`. No more raw git pull, winget, or pip output on upgrades
+- **Fresh install vs upgrade distinction** — verbose messages (backend selection, venv creation, pip install) only shown on first install, suppressed on subsequent runs
+- **Final summary** — "All services are current." or "{word} component(s) updated." with number-to-word conversion
+- **Silent git pulls** — ComfyUI and ComfyUI-Manager git pulls use `Out-Null` on upgrades, no noisy output
+- **ComfyUI-Manager** — "Updated" message only shown when git pull actually pulled changes, not on "Already up to date."
+
 ## 2026-06-07
 
 ### Service management

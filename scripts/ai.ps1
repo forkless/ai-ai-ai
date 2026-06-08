@@ -1,5 +1,5 @@
 <#
-Ai, ai, ai! Control Panel v0.1.1 — daily driver for the Ai Bootstrap system
+Ai, ai, ai! Control Panel v0.1.2 — daily driver for the Ai Bootstrap system
 Usage:  ai <command> [options]
 
 Commands:
@@ -63,7 +63,7 @@ No side effects. Uses $cmd format string for column alignment.
 function Show-Help {
     $cmd = "  {0,-26}{1}"
     $boxWidth = 78
-    $title = " Ai, ai, ai! Control Panel v0.1.1 "
+    $title = " Ai, ai, ai! Control Panel v0.1.2 "
     $inner = $boxWidth - 2
     $lPad = [Math]::Max(0, [Math]::Floor(($inner - $title.Length) / 2))
     Write-Host "┌$("─" * $inner)┐"
@@ -107,7 +107,7 @@ function Show-Version {
             return
         }
     }
-    Write-Host "ai-ai-ai v0.1.1"
+    Write-Host "ai-ai-ai v0.1.2"
 }
 
 function Get-PortConfig {
@@ -423,15 +423,15 @@ function Install-ComfyUI {
     $ComfyPath = "$Root\AI_CORE\Apps\ComfyUI"
     $gpu = Get-GPUType
 
-    Write-Host "Detected GPU: $gpu"
+    Write-Host "Checking ComfyUI..."
 
+    $freshInstall = $false
     if (!(Test-Path $ComfyPath)) {
-        Write-Host "Cloning ComfyUI..."
-        git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath"
+        git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath" 2>$null
+        $freshInstall = $true
     } else {
-        Write-Host "ComfyUI folder exists — pulling latest..."
         Set-Location "$ComfyPath"
-        git pull
+        git pull 2>&1 | Out-Null
     }
 
     Set-Location "$ComfyPath"
@@ -447,17 +447,17 @@ function Install-ComfyUI {
             }
             if ($existingCfg -and $existingCfg.comfyui_backend -eq "rocm") {
                 $Backend = "rocm"
-                Write-Host "Using existing ROCm backend (pass -Backend directml to switch)"
+                if ($freshInstall) { Write-Host "  Using existing ROCm backend" }
             } elseif ($existingCfg -and $existingCfg.comfyui_backend -eq "directml") {
                 $Backend = "directml"
-                Write-Host "Using existing DirectML backend (pass -Backend rocm to switch)"
+                if ($freshInstall) { Write-Host "  Using existing DirectML backend" }
             } elseif ($amdGen -eq "rdna1") {
                 $Backend = "directml"
-                Write-Host "RX 5000 series detected — DirectML is the only compatible backend (ROCm requires RDNA2+)"
+                Write-Host "  DirectML selected (ROCm not available on this GPU)"
             } else {
                 # Auto-select ROCm on RDNA2+ hardware
                 $Backend = "rocm"
-                Write-Host "Auto-selected ROCm backend for ${amdGen} GPU (pass -Backend directml to override)"
+                if ($freshInstall) { Write-Host "  Auto-selected ROCm backend (pass -Backend directml to override)" }
             }
         }
         # Re-check: refuse ROCm on unsupported hardware
@@ -478,33 +478,27 @@ function Install-ComfyUI {
     # Venv creation
     if ($gpu -eq "nvidia") {
         if (!(Test-Path ".\venv")) {
-            Write-Host "Creating Python 3.11 environment..."
+            if ($freshInstall) { Write-Host "  Creating Python 3.11 environment..." }
             py -3.11 -m venv venv
-        } else {
-            Write-Host "Python environment exists — updating..."
         }
     } elseif ($Backend -eq "rocm") {
         if (!(Test-Path ".\venv_rocm")) {
-            Write-Host "Creating Python $pythonVer environment ($venvName)..."
+            if ($freshInstall) { Write-Host "  Creating Python $pythonVer environment..." }
             py -3.12 -m venv venv_rocm
-        } else {
-            Write-Host "ROCm environment exists — updating..."
         }
     } else {
         $recreateVenv = $false
         if ((Test-Path ".\venv") -and $gpu -eq "amd") {
             $dmlCheck = & ".\venv\Scripts\python.exe" -c "import torch_directml; print('ok')" 2>$null
             if ($dmlCheck -ne "ok") {
-                Write-Host "AMD GPU — DirectML backend not found, recreating venv"
+                if ($freshInstall) { Write-Host "  DirectML backend not found, recreating venv" }
                 $recreateVenv = $true
             }
         }
         if ($recreateVenv -or !(Test-Path ".\venv")) {
             if ($recreateVenv) { Remove-Item -Recurse -Force ".\venv" }
-            Write-Host "Creating Python $pythonVer environment..."
+            if ($freshInstall) { Write-Host "  Creating Python $pythonVer environment..." }
             py -3.11 -m venv venv
-        } else {
-            Write-Host "Python environment exists — updating..."
         }
     }
 
@@ -515,7 +509,7 @@ function Install-ComfyUI {
         deactivate
     } elseif ($Backend -eq "rocm") {
         .\venv_rocm\Scripts\Activate.ps1
-        Write-Host "AMD GPU — installing ROCm stack..."
+        if ($freshInstall) { Write-Host "  Installing ROCm stack..." }
         pip install --no-cache-dir `
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_core-7.2.1-py3-none-win_amd64.whl `
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl `
@@ -526,10 +520,9 @@ function Install-ComfyUI {
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl `
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
         pip install -r requirements.txt 2>&1 | Out-Null
-        # Reinstall ROCm torchaudio after requirements.txt to avoid PyPI override
         pip install --no-cache-dir --force-reinstall --no-deps `
             https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl 2>&1 | Out-Null
-        Write-Host "  ROCm stack installed (torch 2.9.1 + ROCm 7.2.1)"
+        if ($freshInstall) { Write-Host "  ROCm stack ready" }
         deactivate
     } else {
         .\venv\Scripts\Activate.ps1
@@ -638,8 +631,10 @@ python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root
 
     $launcher | Out-File "${Root}\AI_TOOLS\launch_comfyui.ps1" -Encoding utf8
 
-    Write-Host ""
-    Write-Host "ComfyUI ready ($gpu). Launch with: .\AI_TOOLS\launch_comfyui.ps1"
+    if ($freshInstall) {
+        Write-Host ""
+        Write-Host "ComfyUI ready ($gpu). Launch with: .\AI_TOOLS\launch_comfyui.ps1"
+    }
     Pop-Location
 }
 
@@ -652,10 +647,11 @@ function Install-ComfyUI-Manager {
         git clone https://github.com/ltdrdata/ComfyUI-Manager.git "$nodeDir"
         Write-Host "ComfyUI-Manager installed. Restart ComfyUI to see it."
     } else {
-        Write-Host "ComfyUI-Manager already installed — pulling updates..."
         Set-Location "$nodeDir"
-        git pull
-        Write-Host "Updated. Restart ComfyUI to see changes."
+        $pullResult = git pull 2>&1
+        if ($pullResult -notmatch "Already up to date") {
+            Write-Host "ComfyUI-Manager updated. Restart ComfyUI to see changes."
+        }
     }
     Pop-Location
 }
@@ -668,11 +664,12 @@ Idempotent: winget handles upgrades.
 #>
 function Install-Ollama {
     Manage-Ollama "stop"
-    Write-Host "Installing Ollama..."
-    winget install Ollama.Ollama --accept-source-agreements
+    Write-Host "Checking Ollama..."
+    winget install Ollama.Ollama --accept-source-agreements 2>&1 | Out-Null
+    Write-Host "  Up to date"
     $ollamaModels = [Environment]::GetEnvironmentVariable("OLLAMA_MODELS", "User")
     if (-not $ollamaModels) {
-        Write-Host "Done. Restart PowerShell, then set: setx OLLAMA_MODELS `"$Root\AI_CORE\_bindings\llm`""
+        Write-Host "(Run 'ai setup env' to set OLLAMA_MODELS)"
     }
 }
 
@@ -693,7 +690,9 @@ function Install-OpenWebUI {
         py -3.11 -m venv venv
     }
 
-    Write-Host "Installing Open Web UI..."
+    $freshInstall = -not (Test-Path $webuiVenv)
+
+    Write-Host "Checking Open Web UI..."
     .\venv\Scripts\Activate.ps1
     pip install open-webui 2>&1 | Out-Null
     deactivate
@@ -722,12 +721,14 @@ open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get
     $launcher | Out-File "${Root}\AI_TOOLS\launch_openwebui.ps1" -Encoding utf8
 
     $defaultPort = (Get-PortConfig).openwebui
-    Write-Host "Open Web UI installed."
-    Write-Host "  Location: $webuiPath"
-    Write-Host "  Launch: ${Root}\AI_TOOLS\launch_openwebui.ps1"
-    Write-Host "  URL: http://127.0.0.1:$defaultPort"
-    if ($defaultPort -ne 3000) {
-        Write-Host "  Port set via AI_CONFIG\ports.json (default is 3000)"
+    if ($freshInstall) {
+        Write-Host "Open Web UI installed."
+        Write-Host "  Location: $webuiPath"
+        Write-Host "  Launch: ${Root}\AI_TOOLS\launch_openwebui.ps1"
+        Write-Host "  URL: http://127.0.0.1:$defaultPort"
+        if ($defaultPort -ne 3000) {
+            Write-Host "  Port set via AI_CONFIG\ports.json (default is 3000)"
+        }
     }
     Pop-Location
 }

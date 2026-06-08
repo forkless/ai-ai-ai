@@ -1,5 +1,5 @@
 <#
-1-init.ps1 — Ai, ai, ai! Bootstrap v0.1.1
+1-init.ps1 — Ai, ai, ai! Bootstrap v0.1.2
 Creates folder structure + config + bindings only.
 No software installation.
 #>
@@ -171,7 +171,7 @@ $portConfig | ConvertTo-Json | Out-File "${BasePath}\AI_CONFIG\ports.json" -Enco
 Write-Host "Port config: ports.json (defaults)"
 
 Write-Host ""
-Write-Host "===== Ai, ai, ai! Bootstrap v0.1.1 ====="
+Write-Host "===== Ai, ai, ai! Bootstrap v0.1.2 ====="
 Write-Host "Architecture initialization complete"
 Write-Host "  Root: $BasePath"
 Write-Host "  Folders: $created new, $skipped existing"
