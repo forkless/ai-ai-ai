@@ -56,6 +56,9 @@ for ($i = 2; $i -lt $args.Count; $i++) {
     if ($args[$i] -eq "--switch" -and $i + 1 -lt $args.Count) { $BackendArg = $args[$i + 1] }
 }
 
+# Vendor colors for status/doctor output (VT escape codes)
+$ESC = [char]27; $R = "${ESC}[38;2;230;0;18m"; $G = "${ESC}[38;2;118;185;0m"; $B = "${ESC}[38;2;0;113;197m"; $X = "${ESC}[0m"
+
 <#
 .SYNOPSIS Displays the full command reference in a bordered box.
 No side effects. Uses $cmd format string for column alignment.
@@ -781,7 +784,7 @@ function Show-Status {
     Write-Host ("│ {0,-12} │ {1,-38} │" -f "VAEs", $vaeCount)
 
     # ── System resources section ──
-    Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
+    Write-Host "├──────────────┬─────────┬──────────────────────────────┤"
 
     # CPU
     $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
@@ -816,8 +819,12 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { "$([math]::Round($vramBytes / 1GB, 1)) GB" } elseif ($gpuInfo.AdapterRAM -gt 0) { "$([math]::Round($gpuInfo.AdapterRAM / 1GB, 1)) GB" } else { $null }
     }
 
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "CPU", "${cpu}%", $cpuName)
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "GPU", $gpuVramTotal, $gpuName)
+    $cpuColor = if ($cpuName -match "AMD|Ryzen|Radeon") { $R } elseif ($cpuName -match "Intel|Core|Xeon") { $B } else { $X }
+    Write-Host ("│ {0,-12} │ {1,-7} │ " -f "CPU", "${cpu}%") -NoNewline
+    Write-Host ("${cpuColor}$($cpuName.PadRight(28))${X} │")
+    $gpuColor = if ($gpuName -match "AMD|Radeon") { $R } elseif ($gpuName -match "NVIDIA|GeForce|RTX") { $G } elseif ($gpuName -match "Intel|Arc") { $B } else { $X }
+    Write-Host ("│ {0,-12} │ {1,-7} │ " -f "GPU", $(if ($gpuVramTotal) { $gpuVramTotal } else { "" })) -NoNewline
+    Write-Host ("${gpuColor}$($gpuName.PadRight(28))${X} │")
     Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "RAM", "${ramPct}%", "$ramUsed GB / $ramTotal GB")
     Write-Host "└──────────────┴─────────┴──────────────────────────────┘"
 }
@@ -1115,7 +1122,11 @@ function Doctor-Check {
             $cfg | ConvertTo-Json -Depth 10 | Out-File $configPath -Encoding utf8
         }
         $backendLabel = if ($cfg.comfyui_backend) { $cfg.comfyui_backend -replace "^rocm$", "ROCm" -replace "^directml$", "DirectML" -replace "^nvidia$|^cuda$", "CUDA" } else { $cfg.gpu.ToUpper() }
-        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($backendLabel)")
+        $bkColor = if ($backendLabel -eq "ROCm") { $R } elseif ($backendLabel -eq "CUDA") { $G } else { $X }
+        $plainStack = "v$($cfg.architecture_version) ($backendLabel)".PadRight(28)
+        $i = $plainStack.IndexOf($backendLabel)
+        $coloredStack = $plainStack.Substring(0, $i) + $bkColor + $backendLabel + $X + $plainStack.Substring($i + $backendLabel.Length)
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", $coloredStack)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
         # Backend version — read from pip metadata (no torch import, avoids GPU init delay)
