@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-06-07
+
+### Service management
+- **Timestamped logs** — all service log output now includes millisecond timestamps (`ai watch` and log files)
+- **Timeout-safe diagnostics** — `ai status`, `ai doctor`, and `ai list` now use background jobs with timeouts for `Get-Counter` and `ollama list` to prevent hanging on AMD systems
+- **Zombie job cleanup** — background processes are properly stopped on timeout
+- **Removed start timeout** — `ai start` returns immediately after launching; check readiness with `ai status` or `ai watch`
+
+### Bug fixes
+- **OLLAMA_MODELS setx hint** — no longer shown on upgrades if the env var is already set
+
 ## 2026-06-05
 
 ### ROCm backend
