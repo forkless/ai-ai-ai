@@ -1313,7 +1313,7 @@ function Doctor-Check {
             $ollamaVer = $verLine.Line -replace '^.*ollama version is (\S+).*', '$1'
             $ollamaVer = $ollamaVer -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
         } elseif ($ollamaAll -match "could not connect") {
-            $ollamaVer = "Installed (ver shown running)"
+            $ollamaVer = "Version shown when running"
         }
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
