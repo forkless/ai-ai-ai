@@ -1266,26 +1266,26 @@ function Doctor-Check {
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($backendLabel)")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
-        # Backend version — check the active venv
+        # Backend version — read from pip metadata (no torch import, avoids GPU init delay)
         $comfyBackend = if ($cfg.comfyui_backend) { $cfg.comfyui_backend } else { $cfg.gpu }
         if ($comfyBackend -eq "rocm") {
-            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\python.exe"
-            if (Test-Path $pyExe) {
-                $ver = & $pyExe -c "import torch; print(torch.version.hip if torch.cuda.is_available() else 'no GPU')" 2>$null
-                Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $(if ($ver -and $ver -ne "no GPU") { $ver -replace '^(\d+\.\d+\.\d+).*', '$1' } else { $ver }))
+            $pipExe = "$Root\AI_CORE\Apps\ComfyUI\venv_rocm\Scripts\pip.exe"
+            if (Test-Path $pipExe) {
+                $ver = & $pipExe show torch 2>$null | Select-String "^Version:" | ForEach-Object { $_ -replace ".*:\s*", "" }
+                if ($ver -match "rocm(\d+\.\d+\.\d+)") { Write-Host ("│ {0,-20} │ {1,-28} │" -f "ROCm", $matches[1]) }
             }
         } elseif ($comfyBackend -eq "directml") {
-            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\python.exe"
-            if (Test-Path $pyExe) {
-                $ver = & $pyExe -c "import torch; print(torch.version.cuda if torch.cuda.is_available() else 'CPU')" 2>$null
-                Write-Host ("│ {0,-20} │ {1,-28} │" -f "DirectML", $ver)
+            $pipExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\pip.exe"
+            if (Test-Path $pipExe) {
+                $ver = & $pipExe show torch 2>$null | Select-String "^Version:" | ForEach-Object { $_ -replace ".*:\s*", "" }
+                Write-Host ("│ {0,-20} │ {1,-28} │" -f "DirectML", $(if ($ver -match "cu(\d+)") { $matches[1] } else { "CPU" }))
             }
         } else {
             # NVIDIA / CUDA
-            $pyExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\python.exe"
-            if (Test-Path $pyExe) {
-                $ver = & $pyExe -c "import torch; print(torch.version.cuda)" 2>$null
-                Write-Host ("│ {0,-20} │ {1,-28} │" -f "CUDA", $(if ($ver) { $ver } else { "?" }))
+            $pipExe = "$Root\AI_CORE\Apps\ComfyUI\venv\Scripts\pip.exe"
+            if (Test-Path $pipExe) {
+                $ver = & $pipExe show torch 2>$null | Select-String "^Version:" | ForEach-Object { $_ -replace ".*:\s*", "" }
+                Write-Host ("│ {0,-20} │ {1,-28} │" -f "CUDA", $(if ($ver -match "cu(\d+)") { $matches[1] } else { "?" }))
             }
         }
     } else {
