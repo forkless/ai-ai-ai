@@ -7,7 +7,7 @@
 - **Fresh install vs upgrade distinction** — verbose messages (backend selection, venv creation, pip install) only shown on first install, suppressed on subsequent runs
 - **Final summary** — "All services are current." or "{word} component(s) updated." with number-to-word conversion
 - **Silent git pulls** — ComfyUI and ComfyUI-Manager git pulls use `Out-Null` on upgrades, no noisy output
-- **ComfyUI-Manager** — "Updated" message only shown when git pull actually pulled changes, not on "Already up to date."
+- **Animated progress indicator** — git pulls for ComfyUI and ComfyUI-Manager now show a live `Checking for updates...` animation with dots that update every 3 seconds, then switch to the result on the same line
 
 ## 2026-06-07
 
