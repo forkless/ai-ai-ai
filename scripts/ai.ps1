@@ -1257,6 +1257,11 @@ function Doctor-Check {
     $configPath = "$Root\AI_CONFIG\system_config.json"
     if (Test-Path $configPath) {
         $cfg = Get-Content $configPath | ConvertFrom-Json
+        # Ensure architecture version is current (migrate from stale configs)
+        if ($cfg.architecture_version -ne "0.1.1") {
+            $cfg.architecture_version = "0.1.1"
+            $cfg | ConvertTo-Json -Depth 10 | Out-File $configPath -Encoding utf8
+        }
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($($cfg.gpu.ToUpper()))")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
@@ -1282,9 +1287,19 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama (version may be on stderr on newer releases)
+    # Ollama (version may be on stderr on newer releases; warning if not running)
     $ollamaRaw = ollama --version 2>&1
-    $ollamaVer = if ($ollamaRaw) { ($ollamaRaw | Select-Object -First 1) -replace '^ollama version is (\S+).*', '$1' } else { "FAIL" }
+    $ollamaVer = "FAIL"
+    if ($ollamaRaw) {
+        $firstLine = $ollamaRaw | Select-Object -First 1
+        if ($firstLine -match '^ollama version is (\S+)') {
+            $ollamaVer = $matches[1]
+        } elseif ($firstLine -notmatch "could not connect") {
+            $ollamaVer = $firstLine
+        } else {
+            $ollamaVer = "not running"
+        }
+    }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
     # ComfyUI
@@ -1331,10 +1346,14 @@ function Doctor-Check {
     if ($envFails.Count -eq 0) {
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", "OK")
     } else {
-        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", "$(($envFails -join ', ')) mis")
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", "$(($envFails -join ', ')) mismatch")
     }
 
     Write-Host "└──────────────────────┴──────────────────────────────┘"
+    if ($envFails.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Fix $(($envFails -join ', ')) mismatch with: ai setup env"
+    }
 }
 
 # Dispatch
