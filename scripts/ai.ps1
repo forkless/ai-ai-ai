@@ -664,9 +664,20 @@ function Install-ComfyUI-Manager {
         Write-Host "ComfyUI-Manager installed. Restart ComfyUI to see it."
     } else {
         Set-Location "$nodeDir"
-        $pullResult = git pull 2>&1
+        $job = Start-Job -ScriptBlock { param($p) Set-Location $p; git pull 2>&1 } -ArgumentList "$nodeDir"
+        Write-Host "  Checking for updates" -NoNewline
+        $dots = 0
+        while ($job.State -eq "Running") {
+            Start-Sleep -Seconds 3
+            $dots++
+            Write-Host "`r  Checking for updates$('.' * ($dots % 4))" -NoNewline
+        }
+        $pullResult = Receive-Job $job
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
         if ($pullResult -notmatch "Already up to date") {
-            Write-Host "ComfyUI-Manager updated. Restart ComfyUI to see changes."
+            Write-Host "`r  Updated — restart ComfyUI"
+        } else {
+            Write-Host "`r  Up to date"
         }
     }
     Pop-Location
