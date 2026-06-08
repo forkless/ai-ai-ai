@@ -960,9 +960,10 @@ public class DxVram {
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
+    $llmDisplay = if ($ollamaScanned) { $llmCount } else { "Not scanned — service offline" }
     Write-Host ""
     Write-Host "  Models:"
-    Write-Host "    LLMs:        $(if ($ollamaScanned) { $llmCount } else { \"Not scanned — service offline\" })"
+    Write-Host "    LLMs:        $llmDisplay"
     Write-Host "    Diffusion:   $diffCount"
     Write-Host "    VAEs:        $vaeCount"
 
