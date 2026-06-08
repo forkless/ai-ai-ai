@@ -1304,14 +1304,16 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama version — read from winget package metadata (no process launch)
+    # Ollama version — read from winget CLI
     $ollamaVer = "FAIL"
-    try {
-        $pkg = Get-WinGetPackage -Id Ollama.Ollama -ErrorAction SilentlyContinue
-        if ($pkg -and $pkg.InstalledVersion) {
-            $ollamaVer = "$($pkg.InstalledVersion)" -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
+    $wingetOut = winget list --id Ollama.Ollama --accept-source-agreements 2>$null
+    if ($wingetOut) {
+        $verLine = $wingetOut | Where-Object { $_ -match "Ollama" } | Select-Object -First 1
+        if ($verLine) {
+            $parts = $verLine -split '\s{2,}'
+            if ($parts.Count -ge 3) { $ollamaVer = $parts[2] -replace '^(\d+(?:\.\d+){1,2}).*', '$1' }
         }
-    } catch { }
+    }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
     # ComfyUI
