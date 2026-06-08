@@ -556,8 +556,10 @@ def _load_lib(*a): return False
         $config | Add-Member -MemberType NoteProperty -Name "comfyui_backend" -Value $Backend -Force
     }
     $config | ConvertTo-Json -Depth 10 | Out-File $configPath
-    Write-Host "system_config.json updated: gpu=$gpu"
-    if ($gpu -eq "amd") { Write-Host "  comfyui_backend=$Backend" }
+    if ($freshInstall) {
+        Write-Host "  Config: gpu=$gpu"
+        if ($gpu -eq "amd") { Write-Host "  Backend: $Backend" }
+    }
 
     # Ensure vault directories exist
     $vaultDirs = @(
@@ -598,17 +600,17 @@ vault_config:
 "@
     $yaml | Out-File "$ComfyPath\extra_model_paths.yaml" -Encoding utf8
 
-    # Quick validation
-    Write-Host "Validating extra_model_paths.yaml..."
-    $yamlLines = Get-Content "$ComfyPath\extra_model_paths.yaml"
-    $firstLine = $yamlLines[0].Trim()
-    if ($firstLine -match "^[a-zA-Z_]+:$" -and $yamlLines.Count -gt 1 -and $yamlLines[1] -match "^\s+[a-zA-Z_]+:") {
-        Write-Host "  OK: named config block detected"
-    } else {
-        Write-Host "  WARNING: format may be wrong — dumping file:"
-        $yamlLines | ForEach-Object { Write-Host "    >$_<" }
-        Write-Host "  First line trimmed: '${firstLine}'"
-        Write-Host "  Has indent check on line 2: $($yamlLines.Count -gt 1 -and $yamlLines[1] -match '^\s+[a-zA-Z_]+:')"
+    if ($freshInstall) {
+        # Quick validation
+        Write-Host "  Validating model paths..."
+        $yamlLines = Get-Content "$ComfyPath\extra_model_paths.yaml"
+        $firstLine = $yamlLines[0].Trim()
+        if ($firstLine -match "^[a-zA-Z_]+:$" -and $yamlLines.Count -gt 1 -and $yamlLines[1] -match "^\s+[a-zA-Z_]+:") {
+            Write-Host "  OK"
+        } else {
+            Write-Host "  WARNING: format may be wrong — dumping file:"
+            $yamlLines | ForEach-Object { Write-Host "    >$_<" }
+        }
     }
 
     # Launcher with GPU flag and listen address
