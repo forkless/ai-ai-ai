@@ -670,7 +670,10 @@ function Install-Ollama {
     Manage-Ollama "stop"
     Write-Host "Installing Ollama..."
     winget install Ollama.Ollama --accept-source-agreements
-    Write-Host "Done. Restart PowerShell, then set: setx OLLAMA_MODELS `"$Root\AI_CORE\_bindings\llm`""
+    $ollamaModels = [Environment]::GetEnvironmentVariable("OLLAMA_MODELS", "User")
+    if (-not $ollamaModels) {
+        Write-Host "Done. Restart PowerShell, then set: setx OLLAMA_MODELS `"$Root\AI_CORE\_bindings\llm`""
+    }
 }
 
 function Install-OpenWebUI {
