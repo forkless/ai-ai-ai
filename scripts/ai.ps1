@@ -176,10 +176,7 @@ python main.py --listen $comfyHost --port $comfyPort --output-directory "${Root}
             Write-Host "ComfyUI starting..."
         }
         "stop" {
-            if (-not $comfyRunning) {
-                Write-Host "ComfyUI is not running."
-                return
-            }
+            if (-not $comfyRunning) { return }
             # Find PID listening on port 8188
             $line = netstat -ano | Select-String "LISTENING" | Select-String ":${comfyPort} "
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
@@ -235,10 +232,7 @@ ollama serve *>&1 | ForEach-Object { "`$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.f
             Write-Host "Ollama starting..."
         }
         "stop" {
-            if (-not $ollamaRunning) {
-                Write-Host "Ollama is not running."
-                return
-            }
+            if (-not $ollamaRunning) { return }
             $line = netstat -ano | Select-String "LISTENING" | Select-String ":${ollamaPort} "
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
             if ($procId) {
@@ -308,10 +302,7 @@ open-webui serve --host `$hostAddr --port `$port *>&1 | ForEach-Object { "`$(Get
             Write-Host "Open Web UI starting..."
         }
         "stop" {
-            if (-not $webuiRunning) {
-                Write-Host "Open Web UI is not running."
-                return
-            }
+            if (-not $webuiRunning) { return }
             $line = netstat -ano | Select-String "LISTENING" | Select-String ":${webuiPort} "
             $procId = $line -replace '.*\s+(\d+)\s*$', '$1'
             if ($procId) {
@@ -678,7 +669,7 @@ function Install-Ollama {
     Manage-Ollama "stop"
     Write-Host "Checking Ollama..."
     winget install Ollama.Ollama --accept-source-agreements 2>&1 | Out-Null
-    Write-Host "  Up to date"
+    if ($LASTEXITCODE -eq 0) { Write-Host "  Installed" } else { Write-Host "  Up to date" }
     $ollamaModels = [Environment]::GetEnvironmentVariable("OLLAMA_MODELS", "User")
     if (-not $ollamaModels) {
         Write-Host "(Run 'ai setup env' to set OLLAMA_MODELS)"
@@ -708,6 +699,8 @@ function Install-OpenWebUI {
     .\venv\Scripts\Activate.ps1
     pip install open-webui 2>&1 | Out-Null
     deactivate
+
+    if ($freshInstall) { Write-Host "  Installed" } else { Write-Host "  Up to date" }
 
     # Launcher that reads port and listen address from config
     $logDir = "${Root}\AI_CACHE\logs"
