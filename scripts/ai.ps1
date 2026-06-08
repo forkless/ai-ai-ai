@@ -1262,7 +1262,8 @@ function Doctor-Check {
             $cfg.architecture_version = "0.1.1"
             $cfg | ConvertTo-Json -Depth 10 | Out-File $configPath -Encoding utf8
         }
-        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($($cfg.gpu.ToUpper()))")
+        $backendLabel = if ($cfg.comfyui_backend) { $cfg.comfyui_backend.ToUpper() } else { $cfg.gpu.ToUpper() }
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Stack", "v$($cfg.architecture_version) ($backendLabel)")
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Path", $Root)
         Write-Host ("│ {0,-20} │ {1,-28} │" -f "Control Panel", (Split-Path $PSCommandPath -Parent))
         # ROCm check — show actual version if available
