@@ -73,7 +73,7 @@ function Show-Help {
     Write-Host "Usage: ai <command>"
     Write-Host ""
     Write-Host ($cmd -f "install <service>",       "Install or update comfyui, comfyui-manager, ollama, openwebui or all")
-    Write-Host ($cmd -f " ",-f "","--switch rocm|directml","For AMD: select ROCm or DirectML backend (install comfyui only)")
+    Write-Host ($cmd -f "", "--switch rocm|directml   For AMD: select ROCm or DirectML backend (install comfyui only)")
     Write-Host ($cmd -f "start <service>",        "Start a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "stop <service>",         "Stop a service (all, ollama, comfyui, openwebui)")
     Write-Host ($cmd -f "restart <service>",       "Restart a service (all, ollama, comfyui, openwebui)")
