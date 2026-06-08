@@ -1307,8 +1307,9 @@ function Doctor-Check {
     # Ollama version — extract from output (second line; first is warning if not running)
     $ollamaVer = "FAIL"
     $ollamaMatch = & ollama --version 2>&1 | Select-String "ollama version is" | Select-Object -First 1
-    if ($ollamaMatch -match 'ollama version is (\S+)') {
-        $ollamaVer = $matches[1] -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
+    if ($ollamaMatch) {
+        $ollamaVer = $ollamaMatch.Line -replace '^.*ollama version is (\S+).*', '$1'
+        $ollamaVer = $ollamaVer -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
