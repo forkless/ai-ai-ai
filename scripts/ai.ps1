@@ -776,16 +776,16 @@ function Show-Status {
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "LLMs", $(if ($ollamaScanned) { $llmCount } else { "─" }), "")
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "Diffusion", $diffCount, "")
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "VAEs", $vaeCount, "")
+    Write-Host ("│ {0,-12} │ {1,-37} │" -f "LLMs", $(if ($ollamaScanned) { $llmCount } else { "─" }))
+    Write-Host ("│ {0,-12} │ {1,-37} │" -f "Diffusion", $diffCount)
+    Write-Host ("│ {0,-12} │ {1,-37} │" -f "VAEs", $vaeCount)
 
     # ── System resources section ──
     Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
 
     # CPU
     $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
-    $cpuName = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+    $cpuName = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name -replace '\s+\d+-Core Processor.*', ''
 
     # RAM
     $os = Get-CimInstance Win32_OperatingSystem
@@ -813,12 +813,12 @@ function Show-Status {
                 $adapter.Description.DedicatedVideoMemory
             } catch { $null }
         }
-        $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
+        $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { "$([math]::Round($vramBytes / 1GB, 1)) GB" } elseif ($gpuInfo.AdapterRAM -gt 0) { "$([math]::Round($gpuInfo.AdapterRAM / 1GB, 1)) GB" } else { $null }
     }
 
     Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "CPU", "${cpu}%", $cpuName)
     Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "GPU", $gpuVramTotal, $gpuName)
-    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "RAM", "$ramUsed/$ramTotal GB", "($ramPct%)")
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "RAM", "${ramPct}%", "$ramUsed GB / $ramTotal GB")
     Write-Host "└──────────────┴─────────┴──────────────────────────────┘"
 }
 
