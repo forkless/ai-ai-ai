@@ -946,12 +946,15 @@ public class DxVram {
     $llmDir = "$Root\AI_VAULT\models\llm"
     $diffDir = "$Root\AI_VAULT\models\diffusion"
     $embedDir = "$Root\AI_VAULT\models\embeddings"
-    # Timeout-safe ollama list (hangs if service is installed but not running)
+    # Ollama models — only query if service is running (avoids update popup)
     $ollamaModels = @()
-    $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
-    $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
-    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
-    $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
+    $ollamaPort = (Get-PortConfig).ollama
+    if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
+        $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
+        $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
+        Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+        $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
+    }
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
@@ -997,10 +1000,14 @@ function Show-Models {
         return "$bytes B"
     }
 
-    # Timeout-safe ollama list
-    $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
-    $rawModels = Wait-Job $job -Timeout 3 | Receive-Job
-    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+    # Timeout-safe ollama list — only if service is running
+    $rawModels = @()
+    $ollamaPort = (Get-PortConfig).ollama
+    if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
+        $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
+        $rawModels = Wait-Job $job -Timeout 3 | Receive-Job
+        Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+    }
     $ollamaModels = @($rawModels | ForEach-Object {
         $parts = $_ -split '\s{2,}'
         if ($parts.Count -ge 3) {
@@ -1312,10 +1319,14 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Model bindings", $(if ($bindOk) { "OK" } else { "MISSING" }))
 
     # Models
-    # Timeout-safe ollama list
-    $job = Start-Job -ScriptBlock { @(ollama list 2>$null | Select-Object -Skip 1).Count }
-    $ollamaCount = Wait-Job $job -Timeout 3 | Receive-Job
-    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+    # Timeout-safe ollama list — only if service is running
+    $ollamaCount = 0
+    $ollamaPort = (Get-PortConfig).ollama
+    if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
+        $job = Start-Job -ScriptBlock { @(ollama list 2>$null | Select-Object -Skip 1).Count }
+        $ollamaCount = Wait-Job $job -Timeout 3 | Receive-Job
+        Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+    }
     $diffC = @(Get-ChildItem "$Root\AI_VAULT\models\diffusion" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$([int]$ollamaCount) LLM(s), $diffC diffusion")
 
