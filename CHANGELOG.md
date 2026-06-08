@@ -9,6 +9,9 @@
 - **Silent git pulls** — ComfyUI and ComfyUI-Manager git pulls use `Out-Null` on upgrades, no noisy output
 - **Animated progress indicator** — git pulls for ComfyUI and ComfyUI-Manager now show a live `Checking for updates...` animation with dots that update every 3 seconds, then switch to the result on the same line
 
+### Bug fixes
+- **Ollama update popup on status** — `ai status`, `ai list`, and `ai doctor` no longer trigger Ollama's Windows update notification. `ollama list` is now guarded behind a port check and only runs when the service is actually listening
+
 ## 2026-06-07
 
 ### Service management

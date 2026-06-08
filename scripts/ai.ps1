@@ -948,19 +948,21 @@ public class DxVram {
     $embedDir = "$Root\AI_VAULT\models\embeddings"
     # Ollama models — only query if service is running (avoids update popup)
     $ollamaModels = @()
+    $ollamaScanned = $false
     $ollamaPort = (Get-PortConfig).ollama
     if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
         $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
         $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
         Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
         $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
+        $ollamaScanned = $true
     }
     $llmCount = $ollamaModels.Count
     $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
     Write-Host ""
     Write-Host "  Models:"
-    Write-Host "    LLMs:        $llmCount"
+    Write-Host "    LLMs:        $(if ($ollamaScanned) { $llmCount } else { \"Not scanned — service offline\" })"
     Write-Host "    Diffusion:   $diffCount"
     Write-Host "    VAEs:        $vaeCount"
 
@@ -1328,7 +1330,8 @@ function Doctor-Check {
         Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
     }
     $diffC = @(Get-ChildItem "$Root\AI_VAULT\models\diffusion" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count
-    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$([int]$ollamaCount) LLM(s), $diffC diffusion")
+    $llmStr = if ($ollamaCount -eq 0) { "0 LLM(s) (service offline)" } else { "$([int]$ollamaCount) LLM(s)" }
+    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$llmStr, $diffC diffusion")
 
     # Environment variables
     $envOk = $true
