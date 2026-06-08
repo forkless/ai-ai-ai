@@ -1340,7 +1340,8 @@ function Doctor-Check {
     $envFails = @()
     $expVault = "$Root\AI_VAULT\models\llm"
     $expCache = "$Root\AI_CACHE"
-    if (([Environment]::GetEnvironmentVariable("OLLAMA_MODELS","User")) -ne $expVault) { $envFails += "OLLAMA_MODELS" }
+    $actualModels = [Environment]::GetEnvironmentVariable("OLLAMA_MODELS","User")
+    if ($actualModels -ne $expVault -and $actualModels -ne "$Root\AI_CORE\_bindings\llm") { $envFails += "OLLAMA_MODELS" }
     if (([Environment]::GetEnvironmentVariable("HF_HOME","User")) -ne "${expCache}\huggingface") { $envFails += "HF_HOME" }
     if (([Environment]::GetEnvironmentVariable("TORCH_HOME","User")) -ne "${expCache}\torch") { $envFails += "TORCH_HOME" }
     if ($envFails.Count -eq 0) {
