@@ -414,19 +414,19 @@ function Install-ComfyUI {
     $ComfyPath = "$Root\AI_CORE\Apps\ComfyUI"
     $gpu = Get-GPUType
 
-    Write-Host "Checking ComfyUI..."
+    Write-Host "□ Checking ComfyUI..."
 
     $freshInstall = $false
     if (!(Test-Path $ComfyPath)) {
         git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath" 2>$null
         $freshInstall = $true
     } else {
-        Write-Host "  Checking for updates..."
-        $pullResult = git pull 2>&1
-        if ($pullResult -match "Already up to date") {
-            Write-Host "  Up to date"
+            Write-Host "  ✓ Checking for updates..."
+            $pullResult = git pull 2>&1
+            if ($pullResult -match "Already up to date") {
+            Write-Host "  ✓ Up to date"
         } else {
-            Write-Host "  Updated"
+            Write-Host "  ✓ Updated"
         }
     }
 
@@ -499,7 +499,7 @@ function Install-ComfyUI {
     }
 
     # pip install
-    Write-Host "  Checking Python dependencies..."
+    Write-Host "  ✓ Checking Python dependencies..."
     if ($gpu -eq "nvidia") {
         .\venv\Scripts\Activate.ps1
         pip install -r requirements.txt 2>&1 | Out-Null
@@ -540,6 +540,8 @@ def _load_lib(*a): return False
         Write-Host "  DirectML stack ready (torchaudio patched)"
         deactivate
     }
+
+    Write-Host "  ✓ Up to date"
 
     # Update config with detected GPU and backend
     $configPath = "$Root\AI_CONFIG\system_config.json"
@@ -638,7 +640,7 @@ python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root
 }
 
 function Install-ComfyUI-Manager {
-    Write-Host "Checking ComfyUI-Manager..."
+    Write-Host "□ Checking ComfyUI-Manager..."
     Manage-ComfyUI "stop"
     Push-Location
     $nodeDir = "${Root}\AI_CORE\Apps\ComfyUI\custom_nodes\ComfyUI-Manager"
@@ -648,12 +650,12 @@ function Install-ComfyUI-Manager {
         Write-Host "ComfyUI-Manager installed. Restart ComfyUI to see it."
     } else {
         Set-Location "$nodeDir"
-        Write-Host "  Checking for updates..."
+        Write-Host "  ✓ Checking for updates..."
         $pullResult = git pull 2>&1
         if ($pullResult -notmatch "Already up to date") {
-            Write-Host "  Updated — restart ComfyUI"
+            Write-Host "  ✓ Updated — restart ComfyUI"
         } else {
-            Write-Host "  Up to date"
+            Write-Host "  ✓ Up to date"
         }
     }
     Pop-Location
@@ -667,9 +669,9 @@ Idempotent: winget handles upgrades.
 #>
 function Install-Ollama {
     Manage-Ollama "stop"
-    Write-Host "Checking Ollama..."
+    Write-Host "□ Checking Ollama..."
     winget install Ollama.Ollama --accept-source-agreements 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) { Write-Host "  Installed" } else { Write-Host "  Up to date" }
+    if ($LASTEXITCODE -eq 0) { Write-Host "  ✓ Installed" } else { Write-Host "  ✓ Up to date" }
     $ollamaModels = [Environment]::GetEnvironmentVariable("OLLAMA_MODELS", "User")
     if (-not $ollamaModels) {
         Write-Host "(Run 'ai setup env' to set OLLAMA_MODELS)"
@@ -695,12 +697,12 @@ function Install-OpenWebUI {
 
     $freshInstall = -not (Test-Path $webuiVenv)
 
-    Write-Host "Checking Open Web UI..."
+    Write-Host "□ Checking Open Web UI..."
     .\venv\Scripts\Activate.ps1
     pip install open-webui 2>&1 | Out-Null
     deactivate
 
-    if ($freshInstall) { Write-Host "  Installed" } else { Write-Host "  Up to date" }
+    if ($freshInstall) { Write-Host "  ✓ Installed" } else { Write-Host "  ✓ Up to date" }
 
     # Launcher that reads port and listen address from config
     $logDir = "${Root}\AI_CACHE\logs"
