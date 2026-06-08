@@ -1305,11 +1305,11 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
     # Ollama version — read from file metadata first, fall back to process
-    $ollamaPath = (Get-Command "ollama" -ErrorAction SilentlyContinue).Source
+    $ollamaPath = (Get-Command "ollama" -ErrorAction SilentlyContinue).Path
     $ollamaVer = "FAIL"
     if ($ollamaPath) {
         $vi = (Get-Item $ollamaPath).VersionInfo
-        $verRaw = $vi.FileVersion -or $vi.ProductVersion
+        $verRaw = if ($vi.FileVersion) { $vi.FileVersion } else { $vi.ProductVersion }
         if ($verRaw) { $ollamaVer = "$verRaw" -replace '^(\d+(?:\.\d+){1,2}).*', '$1' }
         else {
             # Fallback: quick version query (no server connection)
