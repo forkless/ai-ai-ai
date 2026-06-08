@@ -85,7 +85,6 @@ function Show-Help {
     Write-Host ($cmd -f "setup path",             "Add AI_TOOLS to your PATH so 'ai' works from any path")
     Write-Host ($cmd -f "setup ports",            "Configure service ports")
     Write-Host ($cmd -f "watch <service>",        "Watch service log (comfyui, ollama, openwebui)")
-    Write-Host ($cmd -f "version",                "Show version info")
     Write-Host ($cmd -f "help",                   "Show this message")
     Write-Host ""
 }
@@ -95,21 +94,7 @@ function Show-Help {
 Side effects: none. Falls back to defaults if file is missing.
 Returns hashtable with keys: ollama, comfyui, openwebui, listen (string).
 #>
-<#
-.SYNOPSIS Shows version info and exits.
-No side effects. Reads version from system_config.json or falls back to script header.
-#>
-function Show-Version {
-    $configPath = "${Root}\AI_CONFIG\system_config.json"
-    if (Test-Path $configPath) {
-        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-        if ($cfg.architecture_version) {
-            Write-Host "ai-ai-ai $($cfg.architecture_version)"
-            return
-        }
-    }
-    Write-Host "ai-ai-ai v0.1.2"
-}
+
 
 function Get-PortConfig {
     $portFile = "${Root}\AI_CONFIG\ports.json"
@@ -1414,7 +1399,6 @@ switch ($Command) {
         elseif ($SubCommand -eq "ports") { Setup-Ports }
         else { Write-Host "Usage: ai setup <env|path|ports>" }
     }
-    "version"    { Show-Version }
     "help"       { Show-Help }
     default      { Show-Help }
 }
