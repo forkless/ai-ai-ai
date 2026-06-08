@@ -430,13 +430,21 @@ function Install-ComfyUI {
         git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath" 2>$null
         $freshInstall = $true
     } else {
-        Set-Location "$ComfyPath"
-        Write-Host "  Checking for updates..."
-        $pullResult = git pull 2>&1
+        # Git pull with animated progress indicator
+        $job = Start-Job -ScriptBlock { param($p) Set-Location $p; git pull 2>&1 } -ArgumentList "$ComfyPath"
+        Write-Host "  Checking for updates" -NoNewline
+        $dots = 0
+        while ($job.State -eq "Running") {
+            Start-Sleep -Seconds 3
+            $dots++
+            Write-Host "`r  Checking for updates$('.' * ($dots % 4))" -NoNewline
+        }
+        $pullResult = Receive-Job $job
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
         if ($pullResult -match "Already up to date") {
-            Write-Host "  Up to date"
+            Write-Host "`r  Up to date"
         } else {
-            Write-Host "  Updated"
+            Write-Host "`r  Updated"
         }
     }
 
