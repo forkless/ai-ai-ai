@@ -431,7 +431,12 @@ function Install-ComfyUI {
         $freshInstall = $true
     } else {
         Set-Location "$ComfyPath"
-        git pull 2>&1 | Out-Null
+        $pullResult = git pull 2>&1
+        if ($pullResult -match "Already up to date") {
+            if ($freshInstall) { Write-Host "  Up to date" }
+        } else {
+            Write-Host "  Updated"
+        }
     }
 
     Set-Location "$ComfyPath"
