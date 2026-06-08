@@ -1304,18 +1304,14 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama version — some versions omit the version when server is offline
-    $ollamaAll = & ollama --version 2>&1
+    # Ollama version — read from winget package metadata (no process launch)
     $ollamaVer = "FAIL"
-    if ($ollamaAll) {
-        $verLine = $ollamaAll | Select-String "ollama version is" | Select-Object -First 1
-        if ($verLine) {
-            $ollamaVer = $verLine.Line -replace '^.*ollama version is (\S+).*', '$1'
-            $ollamaVer = $ollamaVer -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
-        } elseif ($ollamaAll -match "could not connect") {
-            $ollamaVer = "Version shown when running"
+    try {
+        $pkg = Get-WinGetPackage -Id Ollama.Ollama -ErrorAction SilentlyContinue
+        if ($pkg -and $pkg.InstalledVersion) {
+            $ollamaVer = "$($pkg.InstalledVersion)" -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
         }
-    }
+    } catch { }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
     # ComfyUI
