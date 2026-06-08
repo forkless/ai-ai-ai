@@ -743,9 +743,9 @@ function Show-Status {
         $gpu = if ($detected -ne "unknown") { $detected.ToUpper() } else { $cfg.gpu.ToUpper() }
     }
 
-    Write-Host "┌──────────────┬─────────┬────────┐"
-    Write-Host "│ Service      │ Status  │ Port   │"
-    Write-Host "├──────────────┼─────────┼────────┤"
+    Write-Host "┌──────────────┬─────────┬──────────────────────────────┐"
+    Write-Host "│ Service      │ Status  │ Port                         │"
+    Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
 
     $services = @(
         @{Name="Ollama";    Port=$ports.ollama;    Path="$Root\AI_VAULT\models\llm"},
@@ -757,27 +757,44 @@ function Show-Status {
         $installed = Test-Path $svc.Path
         $status = if ($installed -and $running) { "Started" } elseif ($installed) { "Stopped" } else { "──" }
         $portTxt = if ($installed) { $svc.Port.ToString() } else { "──" }
-        Write-Host ("│ {0,-12} │ {1,-7} │ {2,-6} │" -f $svc.Name, $status, $portTxt)
+        Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f $svc.Name, $status, $portTxt)
     }
-    Write-Host "└──────────────┴─────────┴────────┘"
-    Write-Host ""
+    # ── Models section ──
+    Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
+    $llmDir = "$Root\AI_VAULT\models\llm"
+    $diffDir = "$Root\AI_VAULT\models\diffusion"
+    $ollamaModels = @()
+    $ollamaScanned = $false
+    $ollamaPort = (Get-PortConfig).ollama
+    if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
+        $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
+        $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
+        Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+        $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
+        $ollamaScanned = $true
+    }
+    $llmCount = $ollamaModels.Count
+    $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
+    $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "LLMs", $(if ($ollamaScanned) { $llmCount } else { "─" }), "")
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "Diffusion", $diffCount, "")
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "VAEs", $vaeCount, "")
 
-    # System resources
+    # ── System resources section ──
+    Write-Host "├──────────────┼─────────┼──────────────────────────────┤"
+
+    # CPU
     $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+    $cpuName = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+
+    # RAM
     $os = Get-CimInstance Win32_OperatingSystem
     $ramTotal = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
     $ramFree = [math]::Round($os.FreePhysicalMemory / 1MB, 1)
     $ramUsed = [math]::Round($ramTotal - $ramFree, 1)
     $ramPct = [math]::Round(($ramUsed / $ramTotal) * 100)
-    Write-Host "CPU:  $cpu%"
-    Write-Host "RAM:  $ramUsed/$ramTotal GB ($ramPct%)"
-
-    # GPU — name from WMI, total VRAM from registry (more accurate on AMD)
-    $gpuUtil = $null
-    $gpuVramUsed = $null
-    $gpuVramTotal = $null
-    $gpuName = $null
-
+    # GPU — name from WMI, total VRAM from registry
+    $gpuName = $null; $gpuVramTotal = $null
     $gpuInfo = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($gpuInfo) {
         $gpuName = $gpuInfo.Name
@@ -799,175 +816,10 @@ function Show-Status {
         $gpuVramTotal = if ($vramBytes -and $vramBytes -gt 0) { [math]::Round($vramBytes / 1GB, 1) } elseif ($gpuInfo.AdapterRAM -gt 0) { [math]::Round($gpuInfo.AdapterRAM / 1GB, 1) } else { $null }
     }
 
-    # GPU utilization — use timeout-safe job (Get-Counter can hang on some AMD drivers)
-    $gpuUtil = $null
-    $job = Start-Job -ScriptBlock {
-        param($c) Get-Counter $c -ErrorAction SilentlyContinue |
-            ForEach-Object { $_.CounterSamples } |
-            Where-Object { $_.Path -notmatch "_Total|engine" } |
-            Measure-Object -Property CookedValue -Average |
-            Select-Object -ExpandProperty Average
-    } -ArgumentList "\GPU(*)\Utilization Percentage"
-    $gpuUtil = Wait-Job $job -Timeout 3 | Receive-Job
-    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
-
-    if ($gpuUtil -eq $null -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
-        $gpuUtil = nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>$null
-    }
-    # VRAM usage — timeout-safe job (can hang on some AMD drivers)
-    $gpuVramUsed = $null
-    $job = Start-Job -ScriptBlock {
-        param($c) Get-Counter $c -ErrorAction SilentlyContinue |
-            ForEach-Object { $_.CounterSamples } |
-            Where-Object { $_.Path -notmatch "_Total" } |
-            Measure-Object -Property CookedValue -Sum |
-            Select-Object -ExpandProperty Sum
-    } -ArgumentList "\GPU Adapter Memory\Dedicated Usage"
-    $gpuVramUsed = Wait-Job $job -Timeout 3 | Receive-Job
-    Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
-    if ($gpuVramUsed -eq $null) {
-        try {
-            Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-
-[StructLayout(LayoutKind.Sequential)]
-public struct DXGI_QUERY_VIDEO_MEMORY_INFO {
-    public ulong Budget;
-    public ulong CurrentUsage;
-    public ulong AvailableForReservation;
-    public ulong CurrentReservation;
-}
-
-[Guid("645967A4-1392-4310-A798-8053CE5E93DA"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-[ComImport]
-interface IDXGIAdapter3 {
-    void QueryInterface();
-    void AddRef();
-    void Release();
-    void SetPrivateData();
-    void SetPrivateDataInterface();
-    void GetParent();
-    void EnumOutputs();
-    void GetDesc();
-    void GetDesc1();
-    void GetDesc2();
-    void RegisterHardwareContentProtectionTeardownStatusEvent();
-    void UnregisterHardwareContentProtectionTeardownStatus();
-    void QueryVideoMemoryInfo(uint NodeIndex, int MemorySegmentGroup, out DXGI_QUERY_VIDEO_MEMORY_INFO pVideoMemoryInfo);
-    void RegisterVideoMemoryBudgetChangeNotificationEvent();
-    void UnregisterVideoMemoryBudgetChangeNotification();
-}
-
-[Guid("7b7166ec-21c7-44ae-b21a-c9ae321ae369"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-[ComImport]
-interface IDXGIFactory1 {
-    void QueryInterface();
-    void AddRef();
-    void Release();
-    void SetPrivateData();
-    void SetPrivateDataInterface();
-    void GetParent();
-    void EnumAdapters();
-    void MakeWindowAssociation();
-    void GetWindowAssociation();
-    void CreateSwapChain();
-    void CreateSoftwareAdapter();
-    void EnumAdapters1(uint Adapter, [MarshalAs(UnmanagedType.IUnknown)] out object ppAdapter);
-}
-
-public class DxVram {
-    [DllImport("dxgi.dll", EntryPoint = "CreateDXGIFactory1")]
-    static extern int CreateDXGIFactory1Native([MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object ppFactory);
-
-    public static ulong GetVramUsage() {
-        object factoryObj = null;
-        try {
-            int hr = CreateDXGIFactory1Native(typeof(IDXGIFactory1).GUID, out factoryObj);
-            if (hr != 0) return 0;
-            IDXGIFactory1 factory = (IDXGIFactory1)factoryObj;
-            object adapterObj = null;
-            factory.EnumAdapters1(0, out adapterObj);
-            if (adapterObj == null) return 0;
-            IDXGIAdapter3 adapter3 = (IDXGIAdapter3)adapterObj;
-            DXGI_QUERY_VIDEO_MEMORY_INFO info;
-            adapter3.QueryVideoMemoryInfo(0, 0, out info);
-            return info.CurrentUsage;
-        } catch { return 0; } finally {
-            if (factoryObj != null) Marshal.ReleaseComObject(factoryObj);
-        }
-    }
-}
-'@ -ErrorAction Stop
-            $dxgiVram = [DxVram]::GetVramUsage()
-            if ($dxgiVram -gt 0) { $gpuVramUsed = $dxgiVram }
-        } catch { }
-    }
-
-    if ($gpuUtil) {
-        Write-Host "GPU:  $([math]::Round([double]$gpuUtil))%  —  $gpuName"
-        if ($gpuVramUsed -and $gpuVramTotal) {
-            Write-Host "VRAM: $([math]::Round($gpuVramUsed / 1GB, 1))/$gpuVramTotal GB"
-        } elseif ($gpuVramUsed) {
-            Write-Host "VRAM: $([math]::Round($gpuVramUsed / 1GB, 1)) GB used"
-        } elseif ($gpuVramTotal) {
-            Write-Host "VRAM: 0/$gpuVramTotal GB"
-        }
-    } else {
-        if ($gpuName) {
-            $gpuLine = "GPU:  $gpuName"
-            if ($gpuVramUsed -and $gpuVramTotal) {
-                $gpuLine += "  | VRAM: $([math]::Round($gpuVramUsed / 1GB, 1))/$gpuVramTotal GB"
-            } elseif ($gpuVramTotal) {
-                $gpuLine += "  ($gpuVramTotal GB)"
-            } elseif ($gpuVramUsed) {
-                $gpuLine += "  | VRAM: $([math]::Round($gpuVramUsed / 1GB, 1)) GB used"
-            }
-            Write-Host $gpuLine
-        } else { Write-Host "GPU:  not detected" }
-    }
-    Write-Host ""
-
-    # Models summary
-    $llmDir = "$Root\AI_VAULT\models\llm"
-    $diffDir = "$Root\AI_VAULT\models\diffusion"
-    $embedDir = "$Root\AI_VAULT\models\embeddings"
-    # Ollama models — only query if service is running (avoids update popup)
-    $ollamaModels = @()
-    $ollamaScanned = $false
-    $ollamaPort = (Get-PortConfig).ollama
-    if (netstat -ano 2>$null | Select-String "LISTENING" | Select-String ":${ollamaPort} ") {
-        $job = Start-Job -ScriptBlock { ollama list 2>$null | Select-Object -Skip 1 }
-        $ollamaRows = Wait-Job $job -Timeout 3 | Receive-Job
-        Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
-        $ollamaModels = @($ollamaRows | ForEach-Object { $parts = $_ -split '\s{2,}'; if ($parts.Count -ge 1) { $parts[0] -replace ':latest','' } })
-        $ollamaScanned = $true
-    }
-    $llmCount = $ollamaModels.Count
-    $diffCount = if (Test-Path $diffDir) { @(Get-ChildItem $diffDir -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
-    $vaeCount = if (Test-Path "$diffDir\vae") { @(Get-ChildItem "$diffDir\vae" -Recurse -ErrorAction SilentlyContinue | Where-Object { !$_.PSIsContainer }).Count } else { 0 }
-    $llmDisplay = if ($ollamaScanned) { $llmCount } else { "Not scanned — service offline" }
-    Write-Host ""
-    Write-Host "  Models:"
-    Write-Host "    LLMs:        $llmDisplay"
-    Write-Host "    Diffusion:   $diffCount"
-    Write-Host "    VAEs:        $vaeCount"
-
-    Write-Host ""
-
-    # Folder health — only show issues
-    $missing = @()
-    foreach ($layer in @("AI_CONFIG","AI_CORE","AI_VAULT","AI_WORKSPACE","AI_TOOLS","AI_CACHE")) {
-        if (!(Test-Path "$Root\$layer")) { $missing += $layer }
-    }
-    foreach ($link in @("llm","diffusion","embeddings")) {
-        if (!(Test-Path "$Root\AI_CORE\_bindings\$link")) { $missing += "_bindings\$link" }
-    }
-    if ($missing.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Issues:"
-        foreach ($m in $missing) { Write-Host "  MISSING: $m" }
-    }
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "CPU", "${cpu}%", $cpuName)
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "GPU", $gpuVramTotal, $gpuName)
+    Write-Host ("│ {0,-12} │ {1,-7} │ {2,-28} │" -f "RAM", "$ramUsed/$ramTotal GB", "($ramPct%)")
+    Write-Host "└──────────────┴─────────┴──────────────────────────────┘"
 }
 
 <#
