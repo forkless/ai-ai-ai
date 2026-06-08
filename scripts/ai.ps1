@@ -1321,14 +1321,18 @@ function Doctor-Check {
     $llmStr = if ($ollamaCount -eq 0) { "0 LLM, offline" } else { "$([int]$ollamaCount) LLM" }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Models", "$llmStr, $diffC diff")
 
-    # Environment variables
-    $envOk = $true
+    # Environment variables — check each and list failures
+    $envFails = @()
     $expVault = "$Root\AI_VAULT\models\llm"
     $expCache = "$Root\AI_CACHE"
-    if (([Environment]::GetEnvironmentVariable("OLLAMA_MODELS","User")) -ne $expVault) { $envOk = $false }
-    if (([Environment]::GetEnvironmentVariable("HF_HOME","User")) -ne "${expCache}\huggingface") { $envOk = $false }
-    if (([Environment]::GetEnvironmentVariable("TORCH_HOME","User")) -ne "${expCache}\torch") { $envOk = $false }
-    Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", $(if ($envOk) { "OK" } else { "MIS" }))
+    if (([Environment]::GetEnvironmentVariable("OLLAMA_MODELS","User")) -ne $expVault) { $envFails += "OLLAMA_MODELS" }
+    if (([Environment]::GetEnvironmentVariable("HF_HOME","User")) -ne "${expCache}\huggingface") { $envFails += "HF_HOME" }
+    if (([Environment]::GetEnvironmentVariable("TORCH_HOME","User")) -ne "${expCache}\torch") { $envFails += "TORCH_HOME" }
+    if ($envFails.Count -eq 0) {
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", "OK")
+    } else {
+        Write-Host ("│ {0,-20} │ {1,-28} │" -f "Environment vars", "$(($envFails -join ', ')) mis")
+    }
 
     Write-Host "└──────────────────────┴──────────────────────────────┘"
 }
