@@ -430,21 +430,12 @@ function Install-ComfyUI {
         git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath" 2>$null
         $freshInstall = $true
     } else {
-        # Git pull with animated progress indicator
-        $job = Start-Job -ScriptBlock { param($p) Set-Location $p; git pull 2>&1 } -ArgumentList "$ComfyPath"
-        Write-Host "  Checking for updates" -NoNewline
-        $dots = 0
-        while ($job.State -eq "Running") {
-            Start-Sleep -Seconds 3
-            $dots++
-            Write-Host "`r  Checking for updates$('.' * ($dots % 4))" -NoNewline
-        }
-        $pullResult = Receive-Job $job
-        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        Write-Host "  Checking for updates..."
+        $pullResult = git pull 2>&1
         if ($pullResult -match "Already up to date") {
-            Write-Host "`r  Up to date$(' ' * 10)"
+            Write-Host "  Up to date"
         } else {
-            Write-Host "`r  Updated$(' ' * 13)"
+            Write-Host "  Updated"
         }
     }
 
@@ -517,6 +508,7 @@ function Install-ComfyUI {
     }
 
     # pip install
+    Write-Host "  Checking Python dependencies..."
     if ($gpu -eq "nvidia") {
         .\venv\Scripts\Activate.ps1
         pip install -r requirements.txt 2>&1 | Out-Null
@@ -664,20 +656,12 @@ function Install-ComfyUI-Manager {
         Write-Host "ComfyUI-Manager installed. Restart ComfyUI to see it."
     } else {
         Set-Location "$nodeDir"
-        $job = Start-Job -ScriptBlock { param($p) Set-Location $p; git pull 2>&1 } -ArgumentList "$nodeDir"
-        Write-Host "  Checking for updates" -NoNewline
-        $dots = 0
-        while ($job.State -eq "Running") {
-            Start-Sleep -Seconds 3
-            $dots++
-            Write-Host "`r  Checking for updates$('.' * ($dots % 4))" -NoNewline
-        }
-        $pullResult = Receive-Job $job
-        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        Write-Host "  Checking for updates..."
+        $pullResult = git pull 2>&1
         if ($pullResult -notmatch "Already up to date") {
-            Write-Host "`r  Updated — restart ComfyUI$(' ' * 2)"
+            Write-Host "  Updated — restart ComfyUI"
         } else {
-            Write-Host "`r  Up to date$(' ' * 10)"
+            Write-Host "  Up to date"
         }
     }
     Pop-Location
