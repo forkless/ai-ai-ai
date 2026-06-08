@@ -1304,15 +1304,13 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.10", $py10)
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Python 3.11", $py11)
 
-    # Ollama version — read from winget CLI
+    # Ollama version — parse from --version output
     $ollamaVer = "FAIL"
-    $wingetOut = winget list --id Ollama.Ollama --accept-source-agreements 2>$null
-    if ($wingetOut) {
-        $verLine = $wingetOut | Where-Object { $_ -match "Ollama" } | Select-Object -First 1
-        if ($verLine) {
-            $parts = $verLine -split '\s{2,}'
-            if ($parts.Count -ge 3) { $ollamaVer = $parts[2] -replace '^(\d+(?:\.\d+){1,2}).*', '$1' }
-        }
+    $ollamaOut = & ollama --version 2>&1 | Select-String "(?:ollama|client) version is (\S+)" | Select-Object -First 1
+    if ($ollamaOut) {
+        $ollamaVer = $ollamaOut.Matches.Groups[1].Value -replace '^(\d+(?:\.\d+){1,2}).*', '$1'
+    } elseif (& ollama --version 2>&1 | Select-String "could not connect") {
+        $ollamaVer = "Version shown when running"
     }
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Ollama", $ollamaVer)
 
