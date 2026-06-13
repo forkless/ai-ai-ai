@@ -1189,8 +1189,8 @@ function Doctor-Check {
     Write-Host ("│ {0,-20} │ {1,-28} │" -f "Open Web UI", $webuiVer)
 
     # FFmpeg
-    $ff = ffmpeg -version 2>$null
-    if ($ff) { $ff = ($ff -split "`n")[0] -replace '^ffmpeg version (\d+(?:\.\d+)*).*', '$1'; Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", $ff) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", "not found") }
+    $ffVer = if (Get-Command ffmpeg -ErrorAction SilentlyContinue) { ffmpeg -version 2>$null } else { $null }
+    if ($ffVer) { $ff = ($ffVer -split "`n")[0] -replace '^ffmpeg version (\d+(?:\.\d+)*).*', '$1'; Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", $ff) } else { Write-Host ("│ {0,-20} │ {1,-28} │" -f "FFmpeg", "not found") }
     Write-Host "├──────────────────────┼──────────────────────────────┤"
 
     # Bindings
