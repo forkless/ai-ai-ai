@@ -59,6 +59,14 @@ Write-Host "Install Summary"
 foreach ($r in $results) { Write-Host "  $($r.Name): $($r.Status)" }
 Write-Host "========================"
 Write-Host ""
+
+# Ensure winget Links folder is on PATH (required for ffmpeg, git, ollama to work)
+$wingetLinks = "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+if (Test-Path $wingetLinks -and $env:PATH -notlike "*$wingetLinks*") {
+    [Environment]::SetEnvironmentVariable("PATH", "$env:PATH;$wingetLinks", "User")
+    Write-Host "Added winget Links folder to user PATH"
+}
+
 Write-Host "IMPORTANT: Close ALL PowerShell windows, open a new one."
 Write-Host "Then verify with: py -0, git --version, ollama --version"
 Write-Host "Python 3.12 needed for ROCm ComfyUI backend (optional)"
