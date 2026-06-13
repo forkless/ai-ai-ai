@@ -23,39 +23,33 @@ Write-Host ""
 $results = @()
 
 Write-Host "--- Git ---"
-$result = winget install Git.Git --accept-source-agreements 2>&1
-$results += @{Name="Git"; Status=if ($LASTEXITCODE -eq 0) {"Installed"} else {"Skipped (already up to date)"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
+winget install Git.Git --accept-source-agreements 2>&1 | Out-Null
+$results += @{Name="Git"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
 Write-Host ""
 
 Write-Host "--- Python 3.10 ---"
-$result = winget install Python.Python.3.10 --accept-source-agreements 2>&1
+winget install Python.Python.3.10 --accept-source-agreements 2>&1 | Out-Null
 $results += @{Name="Python 3.10"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "--- Python 3.11 ---"
-$result = winget install Python.Python.3.11 --accept-source-agreements 2>&1
+winget install Python.Python.3.11 --accept-source-agreements 2>&1 | Out-Null
 $results += @{Name="Python 3.11"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "--- Python 3.12 ---"
-$result = winget install Python.Python.3.12 --accept-source-agreements 2>&1
+winget install Python.Python.3.12 --accept-source-agreements 2>&1 | Out-Null
 $results += @{Name="Python 3.12"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "--- Ollama ---"
-$result = winget install Ollama.Ollama --accept-source-agreements 2>&1
+winget install Ollama.Ollama --accept-source-agreements 2>&1 | Out-Null
 $results += @{Name="Ollama"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "--- FFmpeg ---"
-$result = winget install FFmpeg --accept-source-agreements 2>&1
+winget install FFmpeg --accept-source-agreements 2>&1 | Out-Null
 $results += @{Name="FFmpeg"; Status=if ($LASTEXITCODE -eq 0) {"OK"} else {"FAILED or already installed"}}
-if ($LASTEXITCODE -ne 0) { Write-Host "$result" }
 Write-Host ""
 
 Write-Host "========================="
