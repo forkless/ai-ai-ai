@@ -327,6 +327,18 @@ $toolsDir = "${Root}\AI_TOOLS"
 if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
 $launcher | Out-File "${Root}\AI_TOOLS\launch_comfyui.ps1" -Encoding utf8
 
+# ── Custom Nodes ──
+Write-Host "Installing XPUSYS-Monitor-NG..."
+$customNodeDir = "${ComfyPath}\custom_nodes\XPUSYS-Monitor-NG"
+if (!(Test-Path $customNodeDir)) {
+    git clone https://github.com/forkless/XPUSYS-Monitor-NG.git "$customNodeDir" 2>$null
+    Write-Host "  XPUSYS-Monitor-NG installed"
+} else {
+    Set-Location "$customNodeDir"
+    git pull 2>$null | Out-Null
+    Write-Host "  XPUSYS-Monitor-NG up to date"
+}
+
 # Summary
 Write-Host ""
 Write-Host "========================="
