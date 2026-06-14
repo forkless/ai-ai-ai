@@ -628,15 +628,18 @@ python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root
     # Custom nodes — XPUSYS-Monitor-NG is AMD-only
     if ($gpu -eq "amd") {
         $xpuDir = "$Root\AI_CORE\Apps\ComfyUI\custom_nodes\XPUSYS-Monitor-NG"
+        $xpuPip = if ($Backend -eq "rocm") { "$ComfyPath\venv_rocm\Scripts\pip.exe" } else { "$ComfyPath\venv\Scripts\pip.exe" }
         if (!(Test-Path $xpuDir)) {
             Write-Host "□ Installing XPUSYS-Monitor-NG..."
             git clone https://github.com/forkless/XPUSYS-Monitor-NG.git "$xpuDir"
+            if (Test-Path "$xpuDir\requirements.txt") { & $xpuPip install -r "$xpuDir\requirements.txt" 2>&1 | Out-Null }
         } else {
             Write-Host "□ Checking XPUSYS-Monitor-NG..."
             Set-Location "$xpuDir"
             $pullResult = git pull 2>&1
             Set-Location "$ComfyPath"
             if ($pullResult -match "Already up to date") { Write-Host "  ✓ Up to date" } else { Write-Host "  ✓ Updated" }
+            if (Test-Path "$xpuDir\requirements.txt") { & $xpuPip install -r "$xpuDir\requirements.txt" 2>&1 | Out-Null }
         }
     }
     Pop-Location

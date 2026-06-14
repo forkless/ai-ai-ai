@@ -331,6 +331,7 @@ $launcher | Out-File "${Root}\AI_TOOLS\launch_comfyui.ps1" -Encoding utf8
 if ($gpuType -eq "amd") {
     Write-Host "Installing XPUSYS-Monitor-NG..."
     $customNodeDir = "${ComfyPath}\custom_nodes\XPUSYS-Monitor-NG"
+    $pipPath = if ($Backend -eq "rocm") { "${ComfyPath}\venv_rocm\Scripts\pip.exe" } else { "${ComfyPath}\venv\Scripts\pip.exe" }
     if (!(Test-Path $customNodeDir)) {
         git clone https://github.com/forkless/XPUSYS-Monitor-NG.git "$customNodeDir" 2>$null
         Write-Host "  XPUSYS-Monitor-NG installed"
@@ -339,6 +340,7 @@ if ($gpuType -eq "amd") {
         git pull 2>$null | Out-Null
         Write-Host "  XPUSYS-Monitor-NG up to date"
     }
+    if (Test-Path "$customNodeDir\requirements.txt") { & $pipPath install -r "$customNodeDir\requirements.txt" 2>&1 | Out-Null }
 }
 
 # Summary
