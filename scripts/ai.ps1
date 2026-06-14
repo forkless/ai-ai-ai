@@ -625,6 +625,20 @@ python main.py --listen $listenAddr --port $comfyPort --output-directory "${Root
         Write-Host ""
         Write-Host "ComfyUI ready ($gpu). Launch with: .\AI_TOOLS\launch_comfyui.ps1"
     }
+    # Custom nodes — XPUSYS-Monitor-NG is AMD-only
+    if ($gpu -eq "amd") {
+        $xpuDir = "$Root\AI_CORE\Apps\ComfyUI\custom_nodes\XPUSYS-Monitor-NG"
+        if (!(Test-Path $xpuDir)) {
+            Write-Host "□ Installing XPUSYS-Monitor-NG..."
+            git clone https://github.com/forkless/XPUSYS-Monitor-NG.git "$xpuDir"
+        } else {
+            Write-Host "□ Checking XPUSYS-Monitor-NG..."
+            Set-Location "$xpuDir"
+            $pullResult = git pull 2>&1
+            Set-Location "$ComfyPath"
+            if ($pullResult -match "Already up to date") { Write-Host "  ✓ Up to date" } else { Write-Host "  ✓ Updated" }
+        }
+    }
     Pop-Location
 }
 
