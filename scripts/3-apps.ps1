@@ -378,7 +378,6 @@ if (!(Test-Path $webuiVenv)) {
     py -3.11 -m venv venv
 }
 
-Write-Host "Installing Open Web UI..."
 .\venv\Scripts\Activate.ps1
 pip install open-webui 2>&1 | Out-Null
 deactivate
