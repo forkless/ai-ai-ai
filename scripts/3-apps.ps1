@@ -80,7 +80,10 @@ if (!(Test-Path $ComfyPath)) {
     git clone https://github.com/comfyanonymous/ComfyUI.git "$ComfyPath"
     if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Git clone failed."; exit 1 }
 } else {
-    Write-Host "ComfyUI folder exists — skipping clone"
+    Write-Host "ComfyUI folder exists — pulling updates..."
+    Set-Location "$ComfyPath"
+    git pull 2>&1 | Out-Null
+    Set-Location -  # return to original dir
 }
 
 Set-Location "$ComfyPath"
